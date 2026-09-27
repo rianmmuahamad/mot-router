@@ -30,7 +30,7 @@ func (s *Server) providerFor(ctx context.Context, model string) (provider, bareM
 	if strings.HasPrefix(model, "th/") {
 		return ProviderTokenHarbor, strings.TrimPrefix(model, "th/")
 	}
-	if strings.Contains(model, "deepseek-v4.1-flash:free") || strings.Contains(model, "qwen3.8-flash:free") || strings.Contains(model, "mimo-v2.6-flash:free") || strings.HasSuffix(model, ":free") {
+	if strings.HasSuffix(model, ":free") {
 		return ProviderTokenHarbor, strings.TrimPrefix(strings.TrimPrefix(model, "tokenharbor/"), "th/")
 	}
 	if strings.HasPrefix(model, ProviderZen+"/") {

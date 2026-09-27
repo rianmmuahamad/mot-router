@@ -75,8 +75,10 @@ func SessionID(seed string) string {
 }
 
 // IsFreeModel reports whether a model is served by the free tier.
+// Both naming styles count: Zen uses "-free", Token Harbor uses ":free".
 func IsFreeModel(model string) bool {
-	return strings.HasSuffix(strings.ToLower(model), "-free")
+	low := strings.ToLower(model)
+	return strings.HasSuffix(low, "-free") || strings.HasSuffix(low, ":free")
 }
 
 // Headers assembles the upstream request headers, honouring the probed gate

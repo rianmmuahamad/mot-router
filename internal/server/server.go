@@ -273,7 +273,7 @@ func (s *Server) resolveModel(ctx context.Context, requested string) string {
 	if strings.Contains(low, "glm") {
 		return requested
 	}
-	if strings.Contains(low, "qwen3.8-flash") || strings.Contains(low, "deepseek-v4.1-flash") || strings.Contains(low, "mimo-v2.6") {
+	if strings.HasSuffix(low, ":free") {
 		return requested
 	}
 	if zen.IsFreeModel(requested) {
@@ -513,6 +513,10 @@ func (s *Server) handleModels(w http.ResponseWriter, r *http.Request) {
 	}
 	data := make([]map[string]any, 0, len(models))
 	for _, m := range models {
+		// Stale upstream id: Token Harbor serves this model as mimo-v2.6-flash:free.
+		if m.ID == "mimo-v2.6-flash-free" {
+			continue
+		}
 		data = append(data, map[string]any{
 			"id": m.ID, "object": "model", "created": m.Created, "owned_by": "opencode",
 		})
@@ -527,7 +531,7 @@ func (s *Server) handleModels(w http.ResponseWriter, r *http.Request) {
 		map[string]any{"id": "cline-free/muse-spark-1.3-contributor", "object": "model", "owned_by": "cline"},
 		map[string]any{"id": "qwen3.8-flash:free", "object": "model", "owned_by": "tokenharbor"},
 		map[string]any{"id": "deepseek-v4.1-flash:free", "object": "model", "owned_by": "tokenharbor"},
-		map[string]any{"id": "mimo-v2.6-flash-free", "object": "model", "owned_by": "opencode"},
+		map[string]any{"id": "mimo-v2.6-flash:free", "object": "model", "owned_by": "tokenharbor"},
 		map[string]any{"id": "space-bunny-free", "object": "model", "owned_by": "opencode"},
 		map[string]any{"id": "jev-1.13-free", "object": "model", "owned_by": "opencode"},
 	)

@@ -186,7 +186,7 @@ memerlukan API key Mot Router.
 |---|---|---|
 | `opencode-zen/muse-spark-1.3-contributor-free` | ya (`reasoning_effort`) | free tier, jalur utama |
 | `space-bunny-free` | ya | Zen community, jalur `chat/completions` |
-| `mimo-v2.6-flash-free` | ya | Zen, konteks 1M |
+| `mimo-v2.6-flash:free` | ya | Zen, konteks 1M |
 | `qwen3.8-flash:free` | ya | Token Harbor, campaign + pool kunci khusus Qwen |
 | `deepseek-v4.1-flash:free` | ya | Token Harbor, rolling 7 hari, failover banyak kunci |
 | `cline/glm-5.2` | ya | Cline (Z.ai GLM 5.2), alias `glm-5.2` / `zai/glm-5.2` |

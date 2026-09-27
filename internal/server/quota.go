@@ -302,7 +302,7 @@ func (s *Server) handleQuotaStats(w http.ResponseWriter, r *http.Request) {
 
 	qwenStat := modelStats["qwen3.8-flash:free"]
 	dsStat := modelStats["deepseek-v4.1-flash:free"]
-	mimoStat := modelStats["mimo-v2.6-flash-free"]
+	mimoStat := modelStats["mimo-v2.6-flash:free"]
 	museStat := modelStats["muse-spark-1.3-contributor-free"]
 	bunnyStat := modelStats["space-bunny-free"]
 	geminiClineStat := modelStats["cline-free/gemini-3.8-flash"]
@@ -381,7 +381,7 @@ func (s *Server) handleQuotaStats(w http.ResponseWriter, r *http.Request) {
 			ResetInfo:      "Next reset: " + rollingResetDate,
 		},
 		{
-			Model:          "mimo-v2.6-flash-free",
+			Model:          "mimo-v2.6-flash:free",
 			Name:           "MiMo V2.6 Flash (Free Tier)",
 			Provider:       "Token Harbor / Zen",
 			Type:           "rolling_allowance",
