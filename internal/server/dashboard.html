@@ -1,0 +1,2068 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mot Router</title>
+<!-- Inline SVG favicon so the tab shows the M mark without an extra request. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b82f6'/%3E%3Ctext x='16' y='23' font-family='Inter,system-ui,sans-serif' font-size='20' font-weight='800' fill='white' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+<style>
+/* ── Design tokens (ported from the 9Router visual language) ───────────── */
+:root {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --brand-50:#eff6ff; --brand-100:#dbeafe; --brand-200:#bfdbfe; --brand-300:#93c5fd;
+  --brand-400:#60a5fa; --brand-500:#3b82f6; --brand-600:#2563eb; --brand-700:#1d4ed8;
+  --brand-800:#1e40af; --brand-900:#1e3a8a;
+  --primary: var(--brand-500);
+  --primary-hover: var(--brand-600);
+
+  --bg:#fdfaf6; --bg-alt:#f7f3ee; --surface:#fff; --surface-2:#f4f4f5; --surface-3:#e7e7e9;
+  --sidebar:#f4f1ecd9; --border:#e5e7eb; --border-subtle:#f1f1f3;
+  --text:#0a0a0a; --text-main:#0a0a0a; --text-muted:#6b7280; --text-subtle:#9ca3af;
+  --danger:#cf222e; --success:#10b981; --warning:#f59e0b; --info:#7c3aed;
+
+  --radius-brand: 10px; --radius-brand-lg: 14px;
+  --shadow-soft: 0 1px 2px 0 #0000000a;
+  --shadow-warm: 0 2px 12px -2px #3b82f62e;
+  --shadow-elev: inset 0 1px 0 0 #fffc, 0 1px 2px #0f172a0a, 0 12px 36px -8px #0f172a1a;
+  --shadow-focus: 0 0 0 3px #3b82f62e;
+
+  --ease: cubic-bezier(.4,0,.2,1);
+  --dur: .15s;
+  color-scheme: light;
+}
+
+.dark {
+  --bg:#1a1a1a; --bg-alt:#1f1f1e; --surface:#262626; --surface-2:#303030; --surface-3:#3a3a3a;
+  --sidebar:#1e1e1ed9; --border:#333; --border-subtle:#2a2a2a;
+  --text:#ededed; --text-main:#ededed; --text-muted:#9ca3af; --text-subtle:#6b7280;
+  --danger:#ef4444; --success:#22c55e; --warning:#fbbf24; --info:#a78bfa;
+  --shadow-soft: 0 1px 2px 0 #0000004d;
+  --shadow-warm: 0 2px 12px -2px #3b82f640;
+  --shadow-elev: inset 0 1px 0 0 #ffffff0f, 0 1px 2px #0006, 0 16px 48px -8px #0000008c;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { line-height: 1.5; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color .3s var(--ease), color .3s var(--ease);
+}
+
+::selection { color: var(--primary); background: #3b82f640; }
+.dark ::selection { color: var(--brand-300); background: #3b82f64d; }
+
+/* Scrollbars: thin, transparent track, brand-tinted horizontal variant. */
+* { scrollbar-width: thin; scrollbar-color: #78787859 transparent; }
+.dark * { scrollbar-color: #b4b4b44d transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background-color: #78787859; background-clip: padding-box;
+  border: 2px solid transparent; border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover { background-color: #7878788c; }
+.dark ::-webkit-scrollbar-thumb { background-color: #b4b4b44d; }
+.dark ::-webkit-scrollbar-thumb:hover { background-color: #b4b4b480; }
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #9ca3af4d; border-radius: 20px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: var(--primary); }
+
+/* Material Symbols */
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal; font-style: normal; line-height: 1;
+  letter-spacing: normal; text-transform: none; display: inline-block;
+  white-space: nowrap; word-wrap: normal; direction: ltr;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  -webkit-font-smoothing: antialiased;
+}
+.material-symbols-outlined.fill-1 { font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24; }
+
+/* ── App shell ─────────────────────────────────────────────────────────── */
+.shell { display: flex; height: 100vh; width: 100%; overflow: hidden; background: var(--bg); }
+
+.sidebar {
+  display: flex; width: 288px; flex-direction: column; min-height: 100%;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--sidebar);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  /* Animates both the desktop collapse (margin) and the mobile drawer (transform). */
+  transition: background-color .3s var(--ease),
+              margin-left .3s var(--ease),
+              transform .3s var(--ease);
+}
+.traffic { display: flex; align-items: center; gap: 8px; padding: 20px 24px 8px; }
+.traffic i { width: 12px; height: 12px; border-radius: 9999px; display: block; }
+.traffic i:nth-child(1) { background: #FF5F56; }
+.traffic i:nth-child(2) { background: #FFBD2E; }
+.traffic i:nth-child(3) { background: #27C93F; }
+
+.brand { padding: 16px 24px; display: flex; flex-direction: column; gap: 8px; }
+.brand-row { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+.brand-tile {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: var(--radius-brand);
+  background: linear-gradient(to bottom right, var(--brand-500), var(--brand-700));
+  box-shadow: var(--shadow-warm); color: #fff; flex-shrink: 0;
+  /* Letter mark rather than an icon font glyph. */
+  font-size: 19px; font-weight: 800; line-height: 1;
+  letter-spacing: -.04em; text-transform: uppercase;
+  user-select: none;
+}
+.brand-name { font-size: 1.125rem; font-weight: 600; letter-spacing: -.025em; }
+.brand-version { font-size: .75rem; color: var(--text-muted); }
+
+.nav { flex: 1; padding: 8px 16px; overflow-y: auto; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 4px 12px;
+  border-radius: 8px; text-decoration: none; cursor: pointer; border: 0;
+  background: transparent; width: 100%; text-align: left;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  color: var(--text-muted);
+  transition: all var(--dur) var(--ease);
+}
+.nav-item + .nav-item { margin-top: 2px; }
+.nav-item:hover { background: var(--surface-2); color: var(--text-main); }
+.nav-item.on { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
+.nav-item .material-symbols-outlined { font-size: 18px; transition: color var(--dur) var(--ease); }
+.nav-item:hover .material-symbols-outlined { color: var(--primary); }
+.nav-item.on .material-symbols-outlined { color: var(--primary); }
+.nav-group {
+  padding-top: 12px; margin-top: 8px;
+}
+.nav-group-label {
+  padding: 0 16px; margin: 0 0 8px; font-size: .75rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .05em;
+  color: color-mix(in srgb, var(--text-muted) 60%, transparent);
+}
+
+.main { display: flex; flex-direction: column; flex: 1; height: 100%; min-width: 0; position: relative; isolation: isolate; transition: background-color .3s var(--ease); }
+.grid-bg {
+  position: absolute; inset: 0; pointer-events: none; z-index: -1; opacity: .08;
+  background-image:
+    linear-gradient(to right, var(--primary) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--primary) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.dark .grid-bg { opacity: .04; }
+
+.topbar {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 12px 16px 8px; border-bottom: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  z-index: 20;
+}
+.titleblock { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.titleline { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.titleline h1 { font-size: 1rem; font-weight: 600; letter-spacing: -.025em; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.titleline .material-symbols-outlined { color: var(--primary); font-size: 20px; }
+.title-sub { font-size: .875rem; color: var(--text-muted); margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+
+.icon-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 9999px; border: 0; background: transparent;
+  color: var(--text-muted); cursor: pointer;
+  transition: all var(--dur) var(--ease);
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--text-main); }
+.icon-btn .material-symbols-outlined { font-size: 22px; }
+
+.content { flex: 1; overflow-y: auto; padding: 24px; }
+.wrap { max-width: 80rem; margin: 0 auto; }
+@media (min-width: 1024px) {
+  .content { padding: 40px; }
+  .topbar { padding: 12px 32px 8px; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .titleline h1 { font-size: 1.5rem; }
+}
+
+/* ── Cards ─────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-brand-lg); box-shadow: var(--shadow-soft);
+  padding: 24px;
+}
+.card.elev { box-shadow: var(--shadow-elev); }
+.card.hoverable { cursor: pointer; transition: all var(--dur) var(--ease); }
+.card.hoverable:hover { box-shadow: var(--shadow-warm); border-color: color-mix(in srgb, var(--brand-500) 30%, transparent); }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
+.card-head h2 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--text-main); }
+.card-head .material-symbols-outlined { font-size: 20px; }
+.card-sub { font-size: .875rem; color: var(--text-muted); margin: 0; }
+.card-section {
+  padding: 16px; border-radius: var(--radius-brand);
+  background: var(--bg); border: 1px solid var(--border-subtle);
+}
+.stack { display: grid; gap: 16px; }
+.stack.tight { gap: 12px; }
+
+/* ── Stat cards ────────────────────────────────────────────────────────── */
+.stats { display: grid; min-width: 0; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 640px) { .stats { grid-template-columns: repeat(2, 1fr); gap: 16px; } }
+@media (min-width: 768px) { .stats { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1280px) { .stats { grid-template-columns: repeat(5, 1fr); } }
+.stat {
+  display: flex; min-width: 0; flex-direction: column; gap: 4px;
+  padding: 12px 16px; background: var(--surface);
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-brand-lg);
+  box-shadow: var(--shadow-soft);
+}
+.stat-label {
+  font-size: .875rem; font-weight: 600; text-transform: uppercase;
+  color: var(--text-muted); margin: 0;
+}
+.stat-value { font-size: 1.5rem; font-weight: 700; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat-note { font-size: 10px; color: var(--text-muted); }
+.c-primary { color: var(--primary); } .c-info { color: var(--info); }
+.c-success { color: var(--success); } .c-warning { color: var(--warning); }
+.c-danger { color: var(--danger); }
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: inherit; font-weight: 600; cursor: pointer;
+  border: 0; background: transparent; color: var(--text-main);
+  transition: all var(--dur) var(--ease);
+  height: 36px; padding: 0 16px; font-size: .875rem; border-radius: var(--radius-brand);
+  text-decoration: none;
+}
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn:disabled:active { transform: none; }
+.btn .material-symbols-outlined { font-size: 18px; }
+.btn.sm { height: 28px; padding: 0 12px; font-size: .75rem; border-radius: 8px; }
+.btn.sm .material-symbols-outlined { font-size: 16px; }
+.btn.primary { background: var(--brand-500); color: #fff; box-shadow: 0 1px 2px 0 rgb(0 0 0 / .05); }
+.btn.primary:hover { background: var(--brand-600); }
+.btn.secondary { background: var(--surface-2); border: 1px solid var(--border); }
+.btn.secondary:hover { background: var(--surface-3); }
+.btn.outline { border: 1px solid var(--border); }
+.btn.outline:hover { background: var(--surface-2); border-color: color-mix(in srgb, var(--brand-500) 40%, transparent); }
+.btn.ghost { color: var(--text-muted); }
+.btn.ghost:hover { background: var(--surface-2); color: var(--text-main); }
+.btn.danger { background: #ef4444; color: #fff; box-shadow: 0 1px 2px 0 rgb(0 0 0 / .05); }
+.btn.danger:hover { background: #dc2626; }
+.btn.link { color: var(--primary); padding: 0; height: auto; }
+.btn.link:hover { text-decoration: underline; }
+
+/* ── Tabs ──────────────────────────────────────────────────────────────── */
+.tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: var(--radius-brand);
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text-muted); cursor: pointer; font-family: inherit;
+  font-size: .875rem; font-weight: 500;
+  transition: all var(--dur) var(--ease);
+}
+.tab:hover { background: var(--surface-2); color: var(--text-main); }
+.tab.on { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); border-color: color-mix(in srgb, var(--primary) 40%, transparent); }
+.tab .material-symbols-outlined { font-size: 18px; }
+
+/* ── Badges ────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 9999px; font-weight: 600;
+  padding: 2px 10px; font-size: .75rem; white-space: nowrap;
+}
+.badge.sm { padding: 2px 8px; font-size: 10px; }
+.badge .material-symbols-outlined { font-size: 14px; }
+.badge .dot { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; }
+.badge.default { background: var(--surface-2); color: var(--text-muted); }
+.badge.primary { background: color-mix(in srgb, var(--brand-500) 10%, transparent); color: var(--brand-600); }
+.badge.success { background: color-mix(in srgb, #22c55e 10%, transparent); color: #16a34a; }
+.badge.warning { background: color-mix(in srgb, #eab308 10%, transparent); color: #ca8a04; }
+.badge.error { background: color-mix(in srgb, #ef4444 10%, transparent); color: #dc2626; }
+.badge.info { background: color-mix(in srgb, #7c3aed 10%, transparent); color: #6d28d9; }
+.dark .badge.primary { color: var(--brand-300); }
+.dark .badge.success { color: #4ade80; }
+.dark .badge.warning { color: #facc15; }
+.dark .badge.error { color: #f87171; }
+.dark .badge.info { color: #a78bfa; }
+
+/* ── Forms ─────────────────────────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: 6px; }
+label { font-size: .875rem; font-weight: 500; color: var(--text-main); }
+input, select, textarea {
+  width: 100%; padding: 10px 12px; font-size: .875rem; font-family: inherit;
+  color: var(--text-main); background: var(--surface-2);
+  border: 1px solid transparent; border-radius: var(--radius-brand);
+  transition: all var(--dur) var(--ease);
+}
+input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--text-muted) 70%, transparent); }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: color-mix(in srgb, var(--brand-500) 40%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-500) 30%, transparent);
+}
+select { appearance: none; padding-right: 40px; background-image: none; }
+textarea { font-family: var(--font-mono); font-size: 12.5px; resize: vertical; min-height: 80px; }
+.select-wrap { position: relative; }
+.select-wrap .material-symbols-outlined {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  pointer-events: none; color: var(--text-muted); font-size: 20px;
+}
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.row > .grow { flex: 1; min-width: 180px; }
+
+/* ── Tables ────────────────────────────────────────────────────────────── */
+.table-scroll { overflow-x: auto; }
+table { width: 100%; text-align: left; border-collapse: collapse; font-size: .875rem; }
+thead th {
+  padding: 12px 16px; font-size: .75rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .025em; color: var(--text-muted);
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+tbody td { padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr { transition: background-color var(--dur) var(--ease); }
+tbody tr:hover { background: color-mix(in srgb, var(--primary) 5%, transparent); }
+td.muted, .muted { color: var(--text-muted); }
+.mono { font-family: var(--font-mono); font-size: 12.5px; }
+.nowrap { white-space: nowrap; }
+.empty { padding: 32px 16px; text-align: center; color: var(--text-muted); }
+
+/* ── Code / snippets ───────────────────────────────────────────────────── */
+pre {
+  background: var(--bg-alt); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-brand); padding: 14px; margin: 0;
+  overflow-x: auto; font-family: var(--font-mono); font-size: 12.5px;
+  white-space: pre-wrap; word-break: break-word; max-height: 340px;
+  color: var(--text-main);
+}
+code { font-family: var(--font-mono); font-size: .875em; }
+.copy-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  background: var(--surface-2); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-brand); padding: 10px 12px;
+}
+.copy-row code { flex: 1; overflow-x: auto; white-space: nowrap; font-size: 12.5px; }
+
+/* ── Toast ─────────────────────────────────────────────────────────────── */
+.toasts {
+  position: fixed; top: 16px; right: 16px; z-index: 80;
+  display: flex; flex-direction: column; gap: 8px;
+  width: min(92vw, 380px);
+}
+.toast {
+  display: flex; align-items: flex-start; gap: 8px;
+  border-radius: 8px; border: 1px solid; padding: 8px 12px;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / .1);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  animation: fadeIn .2s ease-out forwards;
+}
+.toast.info { border-color: #7c3aed80; background: #7c3aed1a; color: #6d28d9; }
+.toast.success { border-color: #22c55e80; background: #22c55e1a; color: #16a34a; }
+.toast.error { border-color: #ef444480; background: #ef44441a; color: #dc2626; }
+.toast.warning { border-color: #f59e0b80; background: #f59e0b1a; color: #d97706; }
+.dark .toast.info { color: #a78bfa; } .dark .toast.success { color: #4ade80; }
+.dark .toast.error { color: #f87171; } .dark .toast.warning { color: #fbbf24; }
+.toast .material-symbols-outlined { font-size: 18px; line-height: 20px; flex-shrink: 0; }
+.toast-body { min-width: 0; flex: 1; }
+.toast-title { font-size: .75rem; font-weight: 600; margin-bottom: 2px; }
+.toast-msg { font-size: .75rem; white-space: pre-wrap; word-break: break-word; }
+.toast-close { background: 0; border: 0; padding: 0; cursor: pointer; color: currentColor; opacity: .7; }
+.toast-close:hover { opacity: 1; }
+.toast-close .material-symbols-outlined { font-size: 16px; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pulse { 50% { opacity: .5; } }
+@keyframes spin { to { transform: rotate(1turn); } }
+.spin { animation: spin 1s linear infinite; display: inline-block; }
+.pulse { animation: pulse 2s cubic-bezier(.4,0,.6,1) infinite; }
+
+/* Key/value grid used by the gate monitoring panels. */
+.kv { display: grid; grid-template-columns: 160px 1fr; gap: 8px 14px; font-size: .875rem; align-items: baseline; }
+.kv > span:nth-child(odd) { color: var(--text-muted); }
+.kv > span:nth-child(even) { word-break: break-word; }
+@media (max-width: 640px) { .kv { grid-template-columns: 1fr; gap: 2px 0; } .kv > span:nth-child(odd) { margin-top: 8px; } }
+
+.hidden { display: none !important; }
+.hint { font-size: .75rem; color: var(--text-muted); margin: 8px 0 0; line-height: 1.6; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.mobile-only { display: flex; }
+.desktop-only { display: none; }
+.scrim { position: fixed; inset: 0; z-index: 40; background: rgb(0 0 0 / .2); }
+
+/* The sidebar has two behaviours sharing one element:
+   - below 1024px it is an overlay drawer, shown/hidden with `transform`;
+   - at 1024px and up it sits in the layout flow and collapses with a negative
+     margin, so the content area widens to fill the space. */
+@media (max-width: 1023px) {
+  .sidebar-mobile {
+    position: fixed; inset: 0 auto 0 0; z-index: 50;
+    transform: translateX(-100%);
+  }
+  .sidebar-mobile.drawer-open { transform: translateX(0); }
+}
+
+@media (min-width: 1024px) {
+  .mobile-only { display: none; }
+  .desktop-only { display: flex; }
+  .scrim { display: none; }
+  .sidebar-mobile { position: static; transform: none; }
+  body.sidebar-hidden .sidebar-mobile { margin-left: -288px; }
+  /* Let keyboard users reach the toggle without tabbing through the whole nav. */
+  body.sidebar-hidden .sidebar-mobile :is(a, button) { visibility: hidden; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+  <div id="scrim" class="scrim hidden" onclick="toggleSidebar()"></div>
+  <aside class="sidebar sidebar-mobile" id="sidebar">
+    <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+
+    <div class="brand">
+      <a class="brand-row" href="/">
+        <span class="brand-tile" aria-hidden="true">M</span>
+        <span>
+          <span class="brand-name">Mot Router</span><br>
+          <span class="brand-version">Local gateway</span>
+        </span>
+      </a>
+    </div>
+
+    <nav class="nav custom-scrollbar" id="nav">
+      <button class="nav-item" data-tab="connect">
+        <span class="material-symbols-outlined">api</span><span>Connect</span>
+      </button>
+      <button class="nav-item" data-tab="keys">
+        <span class="material-symbols-outlined">vpn_key</span><span>API Keys</span>
+      </button>
+      <button class="nav-item" data-tab="playground">
+        <span class="material-symbols-outlined">chat</span><span>Playground</span>
+      </button>
+      <button class="nav-item" data-tab="models">
+        <span class="material-symbols-outlined">deployed_code</span><span>Models</span>
+      </button>
+      <button class="nav-item" data-tab="quota">
+        <span class="material-symbols-outlined">data_usage</span><span>Quota Tracker</span>
+      </button>
+
+      <div class="nav-group">
+        <p class="nav-group-label">System</p>
+        <button class="nav-item" data-tab="providers">
+          <span class="material-symbols-outlined">dns</span><span>Providers</span>
+        </button>
+        <button class="nav-item" data-tab="gate">
+          <span class="material-symbols-outlined">tune</span><span>Header Adaptation</span>
+        </button>
+        <button class="nav-item" data-tab="mihomo">
+          <span class="material-symbols-outlined">vpn_lock</span><span>IP Rotation</span>
+        </button>
+        <button class="nav-item" data-tab="proxies">
+          <span class="material-symbols-outlined">lan</span><span>Proxy Pools</span>
+        </button>
+        <button class="nav-item" data-tab="logs">
+          <span class="material-symbols-outlined">receipt_long</span><span>Request Logs</span>
+        </button>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- ── Main ─────────────────────────────────────────────────────────── -->
+  <main class="main">
+    <div class="grid-bg" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <button class="icon-btn" id="sidebarToggle" onclick="toggleSidebar()"
+              aria-label="Hide sidebar" aria-expanded="true" aria-controls="sidebar">
+        <span class="material-symbols-outlined">menu_open</span>
+      </button>
+      <div class="titleblock">
+        <div class="titleline">
+          <span class="material-symbols-outlined" id="pageIcon">api</span>
+          <h1 id="pageTitle">Connect</h1>
+        </div>
+        <p class="title-sub" id="pageSub">Endpoint dan API key siap pakai</p>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" onclick="refreshAll()" title="Refresh" aria-label="Refresh">
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
+        <button class="icon-btn" onclick="toggleTheme()" title="Theme" aria-label="Toggle theme">
+          <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="content custom-scrollbar">
+      <div class="wrap">
+
+        <div class="stats" style="margin-bottom:20px">
+          <div class="stat"><p class="stat-label">Requests</p><p class="stat-value" id="sTotal">–</p><p class="stat-note" id="sTotalSub"></p></div>
+          <div class="stat"><p class="stat-label">Success</p><p class="stat-value c-success" id="sOk">–</p><p class="stat-note" id="sOkSub"></p></div>
+          <div class="stat"><p class="stat-label">Input Tokens</p><p class="stat-value c-primary" id="sIn">–</p><p class="stat-note">prompt tokens</p></div>
+          <div class="stat"><p class="stat-label">Output Tokens</p><p class="stat-value c-info" id="sOut">–</p><p class="stat-note">completion tokens</p></div>
+          <div class="stat"><p class="stat-label">Avg Latency</p><p class="stat-value c-warning" id="sMs">–</p><p class="stat-note">milliseconds</p></div>
+        </div>
+
+        <!-- CONNECT -->
+        <section id="tab-connect">
+          <div class="stack">
+            <div class="stack tight" style="grid-template-columns:1fr 1fr">
+              <div class="card">
+                <div class="card-head">
+                  <h2>Your endpoint</h2>
+                  <span class="material-symbols-outlined muted">link</span>
+                </div>
+                <div class="copy-row"><code id="epOpenAI"></code>
+                  <button class="btn sm ghost" onclick="copyEl('epOpenAI')"><span class="material-symbols-outlined">content_copy</span></button></div>
+                <div class="copy-row"><code id="epAnthropic"></code>
+                  <button class="btn sm ghost" onclick="copyEl('epAnthropic')"><span class="material-symbols-outlined">content_copy</span></button></div>
+                <p class="hint">Pakai endpoint OpenAI untuk agent umum, endpoint Anthropic untuk Claude Code. Keduanya menerima API key yang sama.</p>
+              </div>
+
+              <div class="card">
+                <div class="card-head">
+                  <h2>Your API key</h2>
+                  <span class="material-symbols-outlined muted">key</span>
+                </div>
+                <div class="copy-row"><code id="activeKey"></code>
+                  <button class="btn sm ghost" onclick="copyEl('activeKey')"><span class="material-symbols-outlined">content_copy</span></button></div>
+                <div class="copy-row"><code id="activeKeyEnv"></code>
+                  <button class="btn sm ghost" onclick="copyEl('activeKeyEnv')"><span class="material-symbols-outlined">content_copy</span></button></div>
+                <p class="hint">Buat key tambahan di tab <b>API Keys</b>. Key yang di-revoke langsung berhenti bekerja.</p>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Claude Code</h2>
+                <button class="btn sm secondary" onclick="copyEl('ccSnippet')"><span class="material-symbols-outlined">content_copy</span>Copy</button>
+              </div>
+              <pre id="ccSnippet"></pre>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>curl</h2>
+                <button class="btn sm secondary" onclick="copyEl('curlSnippet')"><span class="material-symbols-outlined">content_copy</span>Copy</button>
+              </div>
+              <pre id="curlSnippet"></pre>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Python (OpenAI SDK)</h2>
+                <button class="btn sm secondary" onclick="copyEl('pySnippet')"><span class="material-symbols-outlined">content_copy</span>Copy</button>
+              </div>
+              <pre id="pySnippet"></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- KEYS -->
+        <section id="tab-keys" class="hidden">
+          <div class="card">
+            <div class="card-head">
+              <h2>API Keys</h2>
+              <span class="material-symbols-outlined muted">vpn_key</span>
+            </div>
+            <div class="row" style="margin-bottom:16px">
+              <input id="newKeyName" class="grow" placeholder="Key name (e.g. claude-code-laptop)" />
+              <button class="btn primary" onclick="createKey()"><span class="material-symbols-outlined">add</span>Create key</button>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Name</th><th>Key</th><th>Requests</th><th>Last used</th><th>Status</th><th></th></tr></thead>
+                <tbody id="keysBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- PLAYGROUND -->
+        <section id="tab-playground" class="hidden">
+          <div class="card">
+            <div class="card-head">
+              <h2>Test a model</h2>
+              <span class="material-symbols-outlined muted">science</span>
+            </div>
+            <div class="row" style="margin-bottom:12px">
+              <div class="select-wrap grow">
+                <select id="pgModel"></select>
+                <span class="material-symbols-outlined">expand_more</span>
+              </div>
+              <button class="btn primary" onclick="runPlayground()" id="pgBtn"><span class="material-symbols-outlined">send</span>Send</button>
+            </div>
+            <textarea id="pgPrompt">Explain in one sentence what an API gateway does.</textarea>
+            <pre id="pgOut" class="muted" style="margin-top:12px">Response appears here.</pre>
+          </div>
+        </section>
+
+        <!-- MODELS -->
+        <section id="tab-models" class="hidden">
+          <div class="card">
+            <div class="card-head">
+              <h2>Available models</h2>
+              <span class="material-symbols-outlined muted">deployed_code</span>
+            </div>
+            <input id="modelFilter" placeholder="Filter models…" style="margin-bottom:16px" oninput="renderModels()" />
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Model</th><th>Provider</th><th>Tier</th></tr></thead>
+                <tbody id="modelsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- QUOTA TRACKER -->
+        <section id="tab-quota" class="hidden">
+          <div class="stack" style="gap:20px">
+            <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+              <div>
+                <h2 style="font-size:18px;margin:0 0 4px">Quota & Usage Analytics</h2>
+                <p class="card-sub" style="margin:0">Monitoring pemakaian token, status limit provider, dan kesehatan pool kunci secara real-time.</p>
+              </div>
+              <div class="row" style="gap:8px">
+                <span id="quotaLiveBadge" class="badge success"><span class="material-symbols-outlined" style="font-size:12px;margin-right:4px">sensors</span>Live</span>
+                <button class="btn sm secondary" onclick="loadQuota()"><span class="material-symbols-outlined">refresh</span>Refresh</button>
+              </div>
+            </div>
+            <div class="grid" style="grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:14px">
+              <div class="card" style="padding:16px">
+                <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+                  <span class="muted text-sm font-semibold">Total Tokens</span>
+                  <span class="material-symbols-outlined muted" style="font-size:20px">token</span>
+                </div>
+                <div id="qTotalTokens" style="font-size:24px;font-weight:700;color:var(--text-main);font-family:var(--font-mono)">0</div>
+                <div id="qTokenSplit" class="muted text-xs font-mono" style="margin-top:4px">In: 0 | Out: 0</div>
+              </div>
+              <div class="card" style="padding:16px">
+                <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+                  <span class="muted text-sm font-semibold">Total Requests</span>
+                  <span class="material-symbols-outlined muted" style="font-size:20px">sync_alt</span>
+                </div>
+                <div id="qTotalReqs" style="font-size:24px;font-weight:700;color:var(--text-main);font-family:var(--font-mono)">0</div>
+                <div id="qSuccessRate" class="text-xs font-mono" style="margin-top:4px;color:var(--success)">100% OK</div>
+              </div>
+              <div class="card" style="padding:16px">
+                <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+                  <span class="muted text-sm font-semibold">Today's Usage (UTC)</span>
+                  <span class="material-symbols-outlined muted" style="font-size:20px">today</span>
+                </div>
+                <div id="qTodayTokens" style="font-size:24px;font-weight:700;color:var(--text-main);font-family:var(--font-mono)">0</div>
+                <div id="qTodayReqs" class="muted text-xs font-mono" style="margin-top:4px">0 reqs (0 limits)</div>
+              </div>
+              <div class="card" style="padding:16px">
+                <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+                  <span class="muted text-sm font-semibold">Token Harbor Pool</span>
+                  <span class="material-symbols-outlined muted" style="font-size:20px">vpn_key</span>
+                </div>
+                <div id="qThKeysBadge" style="font-size:24px;font-weight:700;color:var(--text-main);font-family:var(--font-mono)">0 Keys</div>
+                <div id="qThKeysDesc" class="muted text-xs font-mono" style="margin-top:4px">0 ready, 0 limited</div>
+              </div>
+            </div>
+            <div class="card" style="background:linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--primary) 3%, var(--surface)));border:1px solid color-mix(in srgb, var(--primary) 20%, var(--border))">
+              <div class="card-head">
+                <div class="row" style="gap:8px;align-items:center">
+                  <span class="material-symbols-outlined" style="color:var(--primary)">stars</span>
+                  <h2>Model Free Quota & Campaign Allowances</h2>
+                </div>
+                <span class="badge success" style="font-size:11px">Auto-Tracking</span>
+              </div>
+              <p class="card-sub" style="margin-bottom:16px">Pantau jatah kuota model gratis upstream, masa berlaku kampanye promo (seperti <code>qwen3.8-flash:free</code>), model free Cline (<code>cline/glm-5.2</code>, <code>cline-free/gemini-3.8-flash</code>), dan jadwal reset rolling period 7 hari.</p>
+              <div id="quotaCampaignsGrid" class="grid" style="grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:14px"></div>
+            </div>
+            <div class="grid" style="grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:16px">
+              <div class="card">
+                <div class="card-head">
+                  <div class="row" style="gap:8px;align-items:center">
+                    <span class="material-symbols-outlined" style="color:var(--primary)">bolt</span>
+                    <h3 style="margin:0;font-size:15px">OpenCode Zen (Free Tier)</h3>
+                  </div>
+                  <span id="zenStatusBadge" class="badge success">Active</span>
+                </div>
+                <div class="stack" style="gap:8px;margin-top:10px">
+                  <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">Requests / OK:</span><span id="zenReqOk" class="font-mono font-semibold">–</span></div>
+                  <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">Total Tokens:</span><span id="zenTokens" class="font-mono font-semibold">–</span></div>
+                  <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">Egress Mode:</span><span id="zenEgress" class="badge default font-mono" style="font-size:11px">–</span></div>
+                  <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">429 Rate Limits:</span><span id="zenLimits" class="font-mono" style="color:var(--text-main)">–</span></div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-head">
+                  <div class="row" style="gap:8px;align-items:center">
+                    <span class="material-symbols-outlined" style="color:#10b981">anchor</span>
+                    <h3 style="margin:0;font-size:15px">Token Harbor Gateway (Bulk Pool)</h3>
+                  </div>
+                  <span id="thStatusBadge" class="badge success">Active</span>
+                </div>
+                <div class="stack" style="gap:8px;margin-top:10px">
+                  <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">Pool Keys:</span><span id="thPoolSummary" class="font-mono font-semibold">–</span></div>
+                  <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">Qwen Pool (Dedicated):</span><span id="thQwenSummary" class="font-mono font-semibold">–</span></div>
+                  <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">Requests / OK:</span><span id="thReqOk" class="font-mono font-semibold">–</span></div>
+                  <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">Total Tokens:</span><span id="thTokens" class="font-mono font-semibold">–</span></div>
+                  <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">Failover Policy:</span><span class="badge success font-mono" style="font-size:11px">Auto Failover On 429</span></div>
+                </div>
+                <div id="thKeyListContainer" style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+                  <div class="text-xs font-semibold muted" style="margin-bottom:6px">KUNCI DALAM POOL:</div>
+                  <div id="thKeysList" class="stack" style="gap:6px"></div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-head">
+                  <div class="row" style="gap:8px;align-items:center">
+                    <span class="material-symbols-outlined" style="color:#6366f1">terminal</span>
+                    <h3 style="margin:0;font-size:15px">Cline Provider (API Gateway)</h3>
+                  </div>
+                  <span id="clineStatusBadge" class="badge default">Not Configured</span>
+                </div>
+                <div class="stack" style="gap:8px;margin-top:10px">
+                  <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">Base URL:</span><span id="clineBaseUrlText" class="font-mono text-xs">https://api.cline.bot/api/v1</span></div>
+                  <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">Requests / OK:</span><span id="clineReqOk" class="font-mono font-semibold">–</span></div>
+                  <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">Total Tokens:</span><span id="clineTokens" class="font-mono font-semibold">–</span></div>
+                  <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">Status Akun:</span><span id="clineAccountStatus" class="font-mono text-xs">–</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h2>Model Usage Breakdown</h2>
+                <span class="material-symbols-outlined muted">pie_chart</span>
+              </div>
+              <p class="card-sub" style="margin-bottom:12px">Distribusi konsumsi token dan jumlah permintaan berdasarkan model.</p>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Model</th><th>Requests</th><th>Input Tokens</th><th>Output Tokens</th><th>Total Tokens</th><th>Share</th><th>Limits</th></tr></thead>
+                  <tbody id="quotaModelsBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h2>Riwayat Penggunaan 7 Hari Terakhir</h2>
+                <span class="material-symbols-outlined muted">bar_chart</span>
+              </div>
+              <p class="card-sub" style="margin-bottom:12px">Volume token dan permintaan per hari.</p>
+              <div id="quotaDailyChart" class="stack" style="gap:10px"></div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h2>Penggunaan per Client API Key</h2>
+                <span class="material-symbols-outlined muted">vpn_key</span>
+              </div>
+              <p class="card-sub" style="margin-bottom:12px">Konsumsi token oleh client bot / tools yang mengakses router.</p>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Key Name</th><th>Requests</th><th>Input Tokens</th><th>Output Tokens</th><th>Total Tokens</th><th>Last Activity</th></tr></thead>
+                  <tbody id="quotaClientsBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- LOGS -->
+        <section id="tab-logs" class="hidden">
+          <div class="card">
+            <div class="card-head">
+              <h2>Request logs</h2>
+              <div class="row" style="gap:8px">
+                <button class="btn sm secondary" onclick="loadLogs()"><span class="material-symbols-outlined">refresh</span>Refresh</button>
+                <button class="btn sm danger" onclick="clearLogs()"><span class="material-symbols-outlined">delete</span>Clear</button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Time</th><th>Client</th><th>Provider</th><th>Surface</th><th>Model</th><th>Status</th><th>Latency</th><th>Tokens</th><th>Relay</th></tr></thead>
+                <tbody id="logsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- PROVIDERS -->
+        <section id="tab-providers" class="hidden">
+          <div class="stack">
+            <div class="card">
+              <div class="card-head">
+                <h2>Default upstream</h2>
+                <span class="material-symbols-outlined muted">swap_horiz</span>
+              </div>
+              <div class="row">
+                <div class="select-wrap" style="max-width:280px;min-width:200px">
+                  <select id="defaultProvider" onchange="setDefaultProvider()">
+                    <option value="opencode-zen">opencode-zen</option>
+                    <option value="tokenharbor">tokenharbor</option>
+                    <option value="cline">cline</option>
+                  </select>
+                  <span class="material-symbols-outlined">expand_more</span>
+                </div>
+                <span class="hint" style="margin:0">Prefix <code>provider/model</code> selalu menang.</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Token Harbor Gateway</h2>
+                <div class="row" style="gap:8px">
+                  <button class="btn sm secondary" onclick="loadProviders()"><span class="material-symbols-outlined">refresh</span></button>
+                  <button class="btn primary sm" onclick="saveTokenHarbor()"><span class="material-symbols-outlined">save</span>Save Keys</button>
+                </div>
+              </div>
+              <p class="card-sub" style="margin-bottom:16px">OpenAI-compatible API gateway (<code>https://tokenharbor.ai/v1</code>). Mendukung <b>Bulk API Key</b>: masukkan beberapa kunci (satu per baris). Jika kunci 1 limit (429), router otomatis failover ke kunci berikutnya.</p>
+              <div class="stack" style="gap:12px;max-width:580px">
+                <div class="field">
+                  <div class="row" style="justify-content:space-between;margin-bottom:4px">
+                    <label style="margin:0">Token Harbor API Keys (Bulk)</label>
+                    <span id="thKeyCount" class="badge default" style="font-size:11px">0 keys</span>
+                  </div>
+                  <textarea id="thApiKey" rows="3" placeholder="TH_KEY_1...&#10;TH_KEY_2... (satu per baris atau pisahkan koma)" style="font-family:var(--font-mono);font-size:12px"></textarea>
+                </div>
+                <div class="field">
+                  <label>Base URL</label>
+                  <input id="thBaseUrl" type="text" value="https://tokenharbor.ai/v1" style="font-family:var(--font-mono)" />
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <div class="row" style="gap:8px;align-items:center">
+                  <span class="material-symbols-outlined" style="color:#f59e0b">bolt</span>
+                  <h2>Qwen-Only Key (Dedicated)</h2>
+                </div>
+                <div class="row" style="gap:8px">
+                  <button class="btn sm secondary" onclick="loadProviders()"><span class="material-symbols-outlined">refresh</span></button>
+                  <button class="btn primary sm" onclick="saveTokenHarborQwen()"><span class="material-symbols-outlined">save</span>Save Qwen Key</button>
+                </div>
+              </div>
+              <p class="card-sub" style="margin-bottom:16px">Kunci khusus yang <b>hanya dipakai untuk <code>qwen3.8-flash:free</code></b>. Terisolasi dari pool utama: request Qwen tidak pernah menyentuh 27 key utama, dan request non-Qwen tidak pernah menyentuh key ini. Juga tidak ikut kena penalti pool utama.</p>
+              <div class="stack" style="gap:12px;max-width:580px">
+                <div class="field">
+                  <div class="row" style="justify-content:space-between;margin-bottom:4px">
+                    <label style="margin:0">Qwen-Only API Key</label>
+                    <span id="thQwenKeyCount" class="badge default" style="font-size:11px">Not configured</span>
+                  </div>
+                  <input id="thQwenApiKey" type="password" placeholder="TH_KEY_... (khusus Qwen)" style="font-family:var(--font-mono);font-size:12px" />
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <div class="row" style="gap:8px;align-items:center">
+                  <span class="material-symbols-outlined" style="color:#6366f1">terminal</span>
+                  <h2>Cline Gateway (Login & Models)</h2>
+                </div>
+                <div class="row" style="gap:8px">
+                  <button class="btn sm secondary" onclick="loadProviders()"><span class="material-symbols-outlined">refresh</span></button>
+                  <button class="btn primary sm" onclick="saveCline()"><span class="material-symbols-outlined">save</span>Save Token</button>
+                </div>
+              </div>
+              <p class="card-sub" style="margin-bottom:16px">Gunakan kredensial akun Cline Anda (<code>https://api.cline.bot/api/v1</code>). Mendukung model gratis seperti <code>cline/glm-5.2</code>, <code>cline-free/gemini-3.8-flash</code>, <code>cline-free/deepseek-v4.1-flash</code>.</p>
+              <div class="stack" style="gap:12px;max-width:580px">
+                <div class="field">
+                  <div class="row" style="justify-content:space-between;margin-bottom:4px">
+                    <label style="margin:0">Cline API Token / Bearer Key</label>
+                    <span id="clineTokenBadge" class="badge default" style="font-size:11px">Not configured</span>
+                  </div>
+                  <input id="clineApiKey" type="password" placeholder="Masukkan token akun Cline..." style="font-family:var(--font-mono);font-size:12px" />
+                </div>
+                <div class="field">
+                  <label>Base URL</label>
+                  <input id="clineBaseUrl" type="text" value="https://api.cline.bot/api/v1" style="font-family:var(--font-mono)" />
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h2>Upstream Models</h2>
+                <span class="material-symbols-outlined muted">deployed_code</span>
+              </div>
+              <p class="card-sub" style="margin-bottom:12px">Panggil sebagai <code>tokenharbor/&lt;model&gt;</code> atau <code>cline/&lt;model&gt;</code> di semua endpoint router.</p>
+              <div id="agModels" class="mono muted" style="line-height:2"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- IP ROTATION (mihomo) -->
+        <section id="tab-mihomo" class="hidden">
+          <div class="stack">
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Rotasi IP egress</h2>
+                <div class="row" style="gap:8px">
+                  <button class="btn sm secondary" onclick="loadMihomo()"><span class="material-symbols-outlined">refresh</span></button>
+                  <button class="btn sm secondary" onclick="rotateMihomo()" id="mihomoRotateBtn">
+                    <span class="material-symbols-outlined">sync</span>Rotate sekarang
+                  </button>
+                  <button class="btn sm primary" onclick="testMihomo()" id="mihomoTestBtn">
+                    <span class="material-symbols-outlined">bolt</span>Tes ke Zen
+                  </button>
+                </div>
+              </div>
+              <p class="card-sub" style="margin-bottom:16px">
+                Zen membatasi free tier <b>per IP</b>. Saat kena limit, router memindahkan
+                node mihomo sehingga IP egress berubah dan kuota reset — otomatis, tanpa
+                mengubah klien.
+              </p>
+
+              <div class="card-section">
+                <div class="row" style="justify-content:space-between;margin-bottom:12px">
+                  <span style="font-size:.875rem;font-weight:600">Status</span>
+                  <div class="row" style="gap:8px">
+                    <span id="mihomoBadge" class="badge default">–</span>
+                    <label class="row" style="gap:6px;margin:0;cursor:pointer;font-size:.75rem">
+                      <input type="checkbox" id="mihomoEnabled" onchange="saveMihomo()" style="width:auto" />
+                      <span>Aktifkan</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="kv">
+                  <span class="muted">Versi mihomo</span><span id="mihomoVersion" class="mono">–</span>
+                  <span class="muted">Group</span><span id="mihomoGroupName" class="mono">–</span>
+                  <span class="muted">Node aktif</span><span id="mihomoNode" class="mono">–</span>
+                  <span class="muted">IP egress</span><span id="mihomoIP" class="mono">–</span>
+                </div>
+                <div class="row" style="margin-top:12px">
+                  <label class="row" style="gap:6px;margin:0;cursor:pointer;font-size:.875rem">
+                    <input type="checkbox" id="mihomoRotate" onchange="saveMihomo()" style="width:auto" />
+                    <span>Rotate otomatis saat kena limit</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Koneksi</h2>
+                <span class="material-symbols-outlined muted">settings_ethernet</span>
+              </div>
+              <div class="stack tight">
+                <div class="field">
+                  <label for="mihomoController">Control API</label>
+                  <input id="mihomoController" placeholder="http://127.0.0.1:9090" />
+                </div>
+                <div class="field">
+                  <label for="mihomoProxy">Proxy (mixed-port)</label>
+                  <input id="mihomoProxy" placeholder="http://127.0.0.1:7890" />
+                </div>
+                <div class="field">
+                  <label for="mihomoSecret">Secret (opsional)</label>
+                  <input id="mihomoSecret" type="password" placeholder="kosongkan kalau tidak dipakai" />
+                </div>
+              </div>
+              <div class="row" style="margin-top:16px">
+                <button class="btn primary" onclick="saveMihomo()">
+                  <span class="material-symbols-outlined">save</span>Simpan
+                </button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Group tersedia</h2>
+                <span class="material-symbols-outlined muted">account_tree</span>
+              </div>
+              <p class="card-sub" style="margin-bottom:12px">
+                Pilih group yang dipakai untuk rotasi. Angka menunjukkan jumlah node sehat
+                (bukan referensi group).
+              </p>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Group</th><th>Node aktif</th><th>Node sehat</th><th></th></tr></thead>
+                  <tbody id="mihomoGroupsBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Hasil tes terakhir</h2>
+                <span class="material-symbols-outlined muted">science</span>
+              </div>
+              <div id="mihomoTestOut" class="muted">Belum ada tes.</div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- PROXIES -->
+        <section id="tab-proxies" class="hidden">
+          <div class="stack">
+            <div class="card">
+              <div class="card-head">
+                <h2>Cloudflare Relay</h2>
+                <span class="material-symbols-outlined muted">cloud</span>
+              </div>
+              <p class="card-sub" style="margin-bottom:16px">
+                Deploy Cloudflare Worker sebagai proxy relay. Request diteruskan lewat edge
+                network Cloudflare sehingga IP egress berubah dan limit per-IP reset.
+                Free tier: 100.000 request/hari.
+              </p>
+              <div class="stack tight">
+                <div class="field">
+                  <label for="cfAccountId">Account ID</label>
+                  <input id="cfAccountId" placeholder="your-cloudflare-account-id" />
+                </div>
+                <div class="field">
+                  <label for="cfApiToken">API Token</label>
+                  <input id="cfApiToken" type="password" placeholder="Requires Workers Scripts: Edit" />
+                </div>
+                <div class="field">
+                  <label for="cfWorkerName">Worker name</label>
+                  <input id="cfWorkerName" placeholder="cloudflare-relay (opsional)" />
+                </div>
+                <div class="field">
+                  <label for="cfSubdomain">workers.dev subdomain</label>
+                  <input id="cfSubdomain" placeholder="otomatis dari Account ID (opsional)" />
+                </div>
+              </div>
+              <p class="hint">
+                Account ID ada di sisi kanan overview Cloudflare dashboard. Token dibuat di
+                <b>My Profile → API Tokens → Create Token → Custom Token</b> dengan permission
+                <code>Account | Workers Scripts | Edit</code>.
+              </p>
+              <div class="row" style="margin-top:16px">
+                <button class="btn primary" onclick="deployCloudflare()" id="cfDeployBtn">
+                  <span class="material-symbols-outlined">rocket_launch</span>Deploy relay
+                </button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Rotation</h2>
+                <div class="row" style="gap:8px">
+                  <button class="btn sm secondary" onclick="rotateNow()"><span class="material-symbols-outlined">sync</span>Rotate now</button>
+                </div>
+              </div>
+              <div class="card-section row" style="justify-content:space-between">
+                <span style="font-size:.875rem">Rotate otomatis saat kena limit</span>
+                <label class="row" style="gap:8px;margin:0;cursor:pointer">
+                  <input type="checkbox" id="rotateToggle" onchange="setRotation()" style="width:auto" />
+                </label>
+              </div>
+              <p class="hint">
+                Satu relay aktif → dipakai terus (stabil untuk prompt caching). Beberapa relay →
+                bergiliran, dan otomatis pindah saat upstream membalas rate limit.
+              </p>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Relay pools</h2>
+                <span class="material-symbols-outlined muted">lan</span>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Name</th><th>URL</th><th>Type</th><th>Requests</th><th>Status</th><th></th></tr></thead>
+                  <tbody id="proxiesBody"></tbody>
+                </table>
+              </div>
+              <div class="row" style="margin-top:16px">
+                <input id="manualProxyName" class="grow" placeholder="Name (opsional)" />
+                <input id="manualProxyUrl" class="grow" style="flex:2" placeholder="Relay URL (https://…)" />
+                <button class="btn secondary" onclick="addProxy()"><span class="material-symbols-outlined">add</span>Add</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- GATE / HEADER ADAPTATION -->
+        <section id="tab-gate" class="hidden">
+          <div class="stack">
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Adaptasi otomatis</h2>
+                <div class="row" style="gap:8px">
+                  <button class="btn sm secondary" onclick="loadGate()"><span class="material-symbols-outlined">refresh</span></button>
+                  <button class="btn sm secondary" onclick="refreshGate()" id="gateProbeBtn">
+                    <span class="material-symbols-outlined">radar</span>Probe ulang
+                  </button>
+                  <button class="btn sm primary" onclick="testGate()" id="gateTestBtn">
+                    <span class="material-symbols-outlined">bolt</span>Tes end-to-end
+                  </button>
+                </div>
+              </div>
+              <p class="card-sub" style="margin-bottom:16px">
+                Router mendeteksi sendiri bentuk request yang diterima upstream, lalu
+                menyesuaikan header dan tool secara otomatis. Klien tidak perlu diubah.
+              </p>
+
+              <div class="card-section">
+                <div class="row" style="justify-content:space-between;margin-bottom:10px">
+                  <span style="font-size:.875rem;font-weight:600">Status</span>
+                  <span id="gateVerdict" class="badge default">–</span>
+                </div>
+                <div class="kv">
+                  <span class="muted">Sumber</span><span id="gateSource" class="mono">–</span>
+                  <span class="muted">Diverifikasi</span><span id="gateAge" class="mono">–</span>
+                  <span class="muted">Durasi probe</span><span id="gateLatency" class="mono">–</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Profil yang dipakai</h2>
+                <span class="material-symbols-outlined muted">id_card</span>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <tbody id="gateProfileBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Yang diadaptasi router</h2>
+                <span class="material-symbols-outlined muted">auto_fix_high</span>
+              </div>
+              <div id="gateAdaptations"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Hasil probe</h2>
+                <span class="material-symbols-outlined muted">fact_check</span>
+              </div>
+              <p class="card-sub" style="margin-bottom:12px">
+                Setiap kondisi diuji terpisah. Kalau upstream mengubah aturannya,
+                kondisi terkait akan berubah status di sini.
+              </p>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Kondisi</th><th>Status</th><th>Detail</th></tr></thead>
+                  <tbody id="gateConditionsBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Hasil tes terakhir</h2>
+                <span class="material-symbols-outlined muted">science</span>
+              </div>
+              <div id="gateTestOut" class="muted">Belum ada tes. Klik <b>Tes end-to-end</b>.</div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let CONFIG = {}, KEYS = [], MODELS = [];
+
+/* ── Theme ─────────────────────────────────────────────────────────────── */
+function applyTheme(mode) {
+  const dark = mode === 'dark';
+  document.documentElement.classList.toggle('dark', dark);
+  $('themeIcon').textContent = dark ? 'light_mode' : 'dark_mode';
+}
+function toggleTheme() {
+  const next = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+  localStorage.setItem('mot-theme', next);
+  applyTheme(next);
+}
+applyTheme(localStorage.getItem('mot-theme') || 'dark');
+/* ── Sidebar toggle ────────────────────────────────────────────────────── */
+const isDesktop = () => window.matchMedia('(min-width: 1024px)').matches;
+
+// Desktop collapse is a body class (drives a negative margin); the mobile drawer
+// is a class on the aside (drives a transform). Keeping them separate means a
+// resize between the two breakpoints cannot leave the sidebar in a stuck state.
+function toggleSidebar() {
+  const sb = $('sidebar'), sc = $('scrim');
+  if (isDesktop()) {
+    const hidden = document.body.classList.toggle('sidebar-hidden');
+    localStorage.setItem('mot-sidebar', hidden ? 'hidden' : 'shown');
+    syncSidebarButton();
+  } else {
+    const open = sb.classList.toggle('drawer-open');
+    sc.classList.toggle('hidden', !open);
+  }
+}
+
+// The button label follows what the next click will do.
+function syncSidebarButton() {
+  const btn = $('sidebarToggle');
+  if (!btn) return;
+  const hidden = document.body.classList.contains('sidebar-hidden');
+  const icon = btn.querySelector('.material-symbols-outlined');
+  icon.textContent = isDesktop() ? (hidden ? 'menu' : 'menu_open') : 'menu';
+  btn.setAttribute('aria-label', hidden ? 'Show sidebar' : 'Hide sidebar');
+  btn.setAttribute('aria-expanded', String(!hidden));
+}
+
+// Restore the desktop preference. Mobile always starts closed.
+if (isDesktop() && localStorage.getItem('mot-sidebar') === 'hidden') {
+  document.body.classList.add('sidebar-hidden');
+}
+syncSidebarButton();
+
+// Re-sync when crossing the breakpoint so the two modes never overlap.
+window.addEventListener('resize', () => {
+  if (isDesktop()) {
+    $('sidebar').classList.remove('drawer-open');
+    $('scrim').classList.add('hidden');
+  } else {
+    document.body.classList.remove('sidebar-hidden');
+  }
+  syncSidebarButton();
+});
+
+/* ── Toasts ────────────────────────────────────────────────────────────── */
+const TOAST_ICON = { info: 'info', success: 'check_circle', error: 'error', warning: 'warning' };
+function toast(msg, type = 'info', title = '') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `
+    <span class="material-symbols-outlined">${TOAST_ICON[type] || 'info'}</span>
+    <div class="toast-body">
+      ${title ? `<div class="toast-title">${esc(title)}</div>` : ''}
+      <div class="toast-msg">${esc(msg)}</div>
+    </div>
+    <button class="toast-close" aria-label="Dismiss"><span class="material-symbols-outlined">close</span></button>`;
+  el.querySelector('.toast-close').onclick = () => el.remove();
+  $('toasts').appendChild(el);
+  setTimeout(() => el.remove(), type === 'error' ? 8000 : 5000);
+}
+function copyEl(id) {
+  navigator.clipboard.writeText($(id).textContent)
+    .then(() => toast('Copied to clipboard', 'success'))
+    .catch(() => toast('Copy failed', 'error'));
+}
+function copyText(t) {
+  navigator.clipboard.writeText(t)
+    .then(() => toast('Copied to clipboard', 'success'))
+    .catch(() => toast('Copy failed', 'error'));
+}
+
+/* ── Helpers ───────────────────────────────────────────────────────────── */
+const fmtNum = (n) => (n ?? 0).toLocaleString();
+function fmtTime(ts) {
+  if (!ts) return '–';
+  const diff = (Date.now() - ts) / 1000;
+  if (diff < 60) return Math.floor(diff) + 's ago';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return new Date(ts).toLocaleDateString() + ' ' + new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+// errText flattens an API error into a readable string.
+//
+// The router returns errors as an object ({type, message}) so the type stays
+// machine-readable, but that object must never be shown to a human directly:
+// `String(obj)` renders as "[object Object]" and hides the actual cause.
+function errText(err) {
+  if (err == null) return '';
+  if (typeof err === 'string') return err;
+  if (typeof err === 'object') {
+    return err.message || err.error || err.detail || JSON.stringify(err);
+  }
+  return String(err);
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+const activeKey = () => KEYS.find(k => !k.revoked) || KEYS[0];
+
+/* ── Page meta ─────────────────────────────────────────────────────────── */
+const PAGES = {
+  connect:    { title: 'Connect',       icon: 'api',           sub: 'Endpoint dan API key siap pakai' },
+  keys:       { title: 'API Keys',      icon: 'vpn_key',       sub: 'Kelola kredensial router' },
+  playground: { title: 'Playground',    icon: 'chat',          sub: 'Tes model langsung dari dashboard' },
+  models:     { title: 'Models',        icon: 'deployed_code', sub: 'Katalog model semua provider' },
+  quota:      { title: 'Quota Tracker', icon: 'data_usage',    sub: 'Pelacakan kuota token, pool kunci, dan limit' },
+  logs:       { title: 'Request Logs',  icon: 'receipt_long',  sub: 'Riwayat request dan token' },
+  providers:  { title: 'Providers',     icon: 'dns',           sub: 'Akun upstream dan default routing' },
+  proxies:    { title: 'Proxy Pools',   icon: 'lan',           sub: 'Cloudflare relay untuk rotasi IP' },
+  gate:       { title: 'Header Adaptation', icon: 'tune',      sub: 'Adaptasi otomatis header & tool klien' },
+  mihomo:     { title: 'IP Rotation',       icon: 'vpn_lock',   sub: 'Rotasi IP egress lewat mihomo saat kena limit' },
+};
+function showTab(name) {
+  document.querySelectorAll('.nav-item').forEach(b => {
+    const on = b.dataset.tab === name;
+    b.classList.toggle('on', on);
+    b.querySelector('.material-symbols-outlined').classList.toggle('fill-1', on);
+  });
+  Object.keys(PAGES).forEach(t => $('tab-' + t).classList.toggle('hidden', t !== name));
+  const meta = PAGES[name] || PAGES.connect;
+  $('pageTitle').textContent = meta.title;
+  $('pageSub').textContent = meta.sub;
+  $('pageIcon').textContent = meta.icon;
+
+  if (name === 'logs') loadLogs();
+  if (name === 'providers') loadProviders();
+  if (name === 'proxies') loadProxies();
+  if (name === 'gate') loadGate();
+  if (name === 'mihomo') loadMihomo();
+  if (name === 'quota') loadQuota();
+
+  // On mobile, picking a page dismisses the drawer. Desktop keeps its state.
+  if (!isDesktop()) {
+    $('sidebar').classList.remove('drawer-open');
+    $('scrim').classList.add('hidden');
+  }
+}
+document.querySelectorAll('.nav-item').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+
+/* ── Connect ───────────────────────────────────────────────────────────── */
+function renderConnect() {
+  const k = activeKey();
+  const key = k ? k.key : 'no-key-yet';
+  $('epOpenAI').textContent = CONFIG.endpoint + '/chat/completions';
+  $('epAnthropic').textContent = CONFIG.anthropic_endpoint + '/v1/messages';
+  $('activeKey').textContent = key;
+  $('activeKeyEnv').textContent = 'export OPENAI_API_KEY=' + key;
+
+  $('ccSnippet').textContent =
+`export ANTHROPIC_BASE_URL=${CONFIG.anthropic_endpoint}
+export ANTHROPIC_API_KEY=${key}
+export ANTHROPIC_MODEL=${CONFIG.default_model}
+
+claude`;
+
+  $('curlSnippet').textContent =
+`curl ${CONFIG.endpoint}/chat/completions \\
+  -H "Authorization: Bearer ${key}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "${CONFIG.default_model}",
+    "messages": [{"role":"user","content":"Say hello"}],
+    "stream": false
+  }'`;
+
+  $('pySnippet').textContent =
+`from openai import OpenAI
+
+client = OpenAI(
+    base_url="${CONFIG.endpoint}",
+    api_key="${key}",
+)
+
+r = client.chat.completions.create(
+    model="${CONFIG.default_model}",
+    messages=[{"role": "user", "content": "Say hello"}],
+)
+print(r.choices[0].message.content)`;
+}
+
+/* ── Keys ──────────────────────────────────────────────────────────────── */
+function renderKeys() {
+  $('keysBody').innerHTML = KEYS.map(k => `
+    <tr>
+      <td><b>${esc(k.name)}</b></td>
+      <td class="mono">${esc(k.key.slice(0, 14))}…${esc(k.key.slice(-6))}</td>
+      <td class="mono">${fmtNum(k.request_count)}</td>
+      <td class="muted nowrap">${fmtTime(k.last_used_at)}</td>
+      <td><span class="badge ${k.revoked ? 'error' : 'success'}"><span class="dot"></span>${k.revoked ? 'revoked' : 'active'}</span></td>
+      <td class="row" style="justify-content:flex-end;gap:6px">
+        <button class="btn sm ghost" onclick="copyText('${esc(k.key)}')" title="Copy"><span class="material-symbols-outlined">content_copy</span></button>
+        <button class="btn sm secondary" onclick="toggleKey(${k.id}, ${k.revoked ? 'false' : 'true'})">${k.revoked ? 'Restore' : 'Revoke'}</button>
+        <button class="btn sm ghost" onclick="delKey(${k.id})" title="Delete"><span class="material-symbols-outlined" style="color:var(--danger)">delete</span></button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="6" class="empty">No keys yet.</td></tr>';
+}
+
+/* ── Models ────────────────────────────────────────────────────────────── */
+function renderModels() {
+  const q = ($('modelFilter').value || '').toLowerCase();
+  const rows = MODELS.filter(m => m.id.toLowerCase().includes(q));
+  $('modelsBody').innerHTML = rows.map(m => {
+    const free = /-free$/.test(m.id);
+    const provider = m.provider || 'opencode-zen';
+    return `<tr>
+      <td class="mono">${esc(m.id)}</td>
+      <td><span class="badge ${provider === 'cline' ? 'info' : (provider === 'tokenharbor' ? 'warning' : 'primary')}">${esc(provider)}</span></td>
+      <td><span class="badge ${free ? 'success' : 'default'}">${free ? 'free' : 'paid'}</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="3" class="empty">No models match.</td></tr>';
+}
+
+/* ── Logs ──────────────────────────────────────────────────────────────── */
+function renderLogs(rows) {
+  $('logsBody').innerHTML = rows.map(r => {
+    const provider = r.provider || 'opencode-zen';
+    const ok = r.status >= 200 && r.status < 400;
+    const rerouted = r.requested_model && r.requested_model !== r.model;
+    const modelCell = rerouted
+      ? `<span class="mono">${esc(r.model)}</span><br><span class="muted" style="font-size:11px">asked: ${esc(r.requested_model)}</span>`
+      : `<span class="mono">${esc(r.model)}</span>`;
+    return `
+    <tr>
+      <td class="muted nowrap">${fmtTime(r.ts)}</td>
+      <td>${esc(r.client ?? '–')}</td>
+      <td><span class="badge ${provider === 'cline' ? 'info' : (provider === 'tokenharbor' ? 'warning' : 'primary')}">${esc(provider)}</span></td>
+      <td><span class="badge default">${esc(r.surface)}</span></td>
+      <td>${modelCell}</td>
+      <td><span class="badge ${ok ? 'success' : 'error'}"><span class="dot"></span>${r.status}</span></td>
+      <td class="mono nowrap">${r.latency_ms}ms</td>
+      <td class="mono muted nowrap">${r.input_tokens ? fmtNum(r.input_tokens) + ' → ' + fmtNum(r.output_tokens) : '–'}</td>
+      <td class="muted">${r.relay && r.relay !== 'direct' ? esc(r.relay.split(' ')[0]) : '–'}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" class="empty">No requests logged yet.</td></tr>';
+}
+
+/* ── Providers ─────────────────────────────────────────────────────────── */
+async function loadProviders() {
+  const data = await (await fetch('/api/providers')).json();
+  $('defaultProvider').value = data.default || 'opencode-zen';
+  if (data.tokenharbor) {
+    const th = data.tokenharbor;
+    if (th.api_keys && th.api_keys.length > 0) {
+      $('thApiKey').placeholder = th.api_keys.join('\n');
+      $('thKeyCount').textContent = `${th.total_keys} keys (${th.active_keys} active, ${th.penalized_keys} 429-limited)`;
+      $('thKeyCount').className = 'badge ' + (th.active_keys > 0 ? 'success' : 'error');
+    } else {
+      $('thKeyCount').textContent = 'Not configured';
+      $('thKeyCount').className = 'badge default';
+    }
+    if (th.base_url) $('thBaseUrl').value = th.base_url;
+    const qp = th.qwen_pool || {};
+    if (qp.dedicated) {
+      $('thQwenKeyCount').textContent = `Dedicated (${qp.total_keys} key${qp.total_keys === 1 ? '' : 's'}, ${qp.active_keys} active)`;
+      $('thQwenKeyCount').className = 'badge ' + (qp.active_keys > 0 ? 'success' : 'error');
+      $('thQwenApiKey').placeholder = 'Qwen-only key tersimpan (isi untuk mengganti)';
+    } else {
+      $('thQwenKeyCount').textContent = 'Not configured (fallback ke pool utama)';
+      $('thQwenKeyCount').className = 'badge default';
+    }
+  }
+  if (data.cline) {
+    const cl = data.cline;
+    if (cl.configured) {
+      $('clineApiKey').placeholder = cl.api_key || '***';
+      $('clineTokenBadge').textContent = 'Configured';
+      $('clineTokenBadge').className = 'badge success';
+    } else {
+      $('clineTokenBadge').textContent = 'Not configured';
+      $('clineTokenBadge').className = 'badge default';
+    }
+    if (cl.base_url) $('clineBaseUrl').value = cl.base_url;
+  }
+  const thList = MODELS.filter(m => m.provider === 'tokenharbor' || m.provider === 'cline');
+  $('agModels').innerHTML = thList.map(m => esc(m.id)).join('<br>') || 'cline/glm-5.2<br>cline-free/gemini-3.8-flash<br>qwen3.8-flash:free<br>deepseek-v4.1-flash:free';
+}
+async function saveTokenHarbor() {
+  const key = $('thApiKey').value.trim();
+  const url = $('thBaseUrl').value.trim();
+  await fetch('/api/providers/tokenharbor', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ api_key: key, base_url: url })
+  });
+  toast('Token Harbor bulk keys saved', 'success');
+  await loadProviders();
+}
+async function saveTokenHarborQwen() {
+  const key = $('thQwenApiKey').value.trim();
+  if (!key) { toast('Isi Qwen-only key dulu', 'warning'); return; }
+  await fetch('/api/providers/tokenharbor', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ api_key: key, qwen_only: true })
+  });
+  $('thQwenApiKey').value = '';
+  toast('Qwen-only key saved (khusus Qwen)', 'success');
+  await loadProviders();
+}
+async function saveCline() {
+  const key = $('clineApiKey').value.trim();
+  const url = $('clineBaseUrl').value.trim();
+  await fetch('/api/providers/cline', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ api_key: key, base_url: url })
+  });
+  toast('Cline configuration saved', 'success');
+  await loadProviders();
+}
+async function setDefaultProvider() {
+  await fetch('/api/providers/default', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ provider: $('defaultProvider').value }),
+  });
+  toast('Default provider updated', 'success');
+}
+
+/* ── Quota Tracker ─────────────────────────────────────────────────────────── */
+function fmtTok(n) {
+  if (n == null || isNaN(n)) return '0';
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'k';
+  return Number(n).toLocaleString();
+}
+async function loadQuota() {
+  try {
+    const res = await fetch('/api/quota');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const s = data.summary || {};
+    $('qTotalTokens').textContent = fmtTok(s.total_tokens);
+    $('qTokenSplit').textContent = `In: ${fmtTok(s.total_input_tokens)} | Out: ${fmtTok(s.total_output_tokens)}`;
+    $('qTotalReqs').textContent = fmtNum(s.total_requests);
+    $('qSuccessRate').textContent = `${(s.success_rate || 100).toFixed(1)}% OK (${fmtNum(s.success_count)} sukses, ${fmtNum(s.limit_count)} limits)`;
+    $('qTodayTokens').textContent = fmtTok(s.today_tokens);
+    $('qTodayReqs').textContent = `${fmtNum(s.today_requests)} reqs (${fmtNum(s.today_limits)} limits)`;
+    const thProv = (data.providers && data.providers.tokenharbor) || {};
+    const thExtra = thProv.extra || {};
+    $('qThKeysBadge').textContent = `${thExtra.total_keys || 0} Keys`;
+    $('qThKeysDesc').textContent = `${thExtra.active_keys || 0} siap, ${thExtra.penalized_keys || 0} kena limit`;
+    const allowances = data.free_allowances || [];
+    const campGrid = $('quotaCampaignsGrid');
+    if (campGrid) {
+      campGrid.innerHTML = allowances.map(a => `
+        <div class="card" style="padding:14px;background:var(--surface-2);border:1px solid var(--border)">
+          <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div>
+              <div class="font-semibold text-sm" style="color:var(--text-main)">${esc(a.name)}</div>
+              <div class="muted text-xs font-mono" style="margin-top:2px">${esc(a.model)}</div>
+            </div>
+            <span class="badge ${a.type === 'campaign' ? 'primary' : 'success'}" style="font-size:10px">${esc(a.banner)}</span>
+          </div>
+          <p class="card-sub text-xs" style="margin-bottom:12px;line-height:1.5">${esc(a.description)}</p>
+          <div class="stack" style="gap:6px;background:var(--surface);padding:8px 10px;border-radius:6px;font-size:11px">
+            <div class="row" style="justify-content:space-between"><span class="muted">Status Kuota:</span><span class="font-semibold" style="color:${a.used_pct === 100 ? 'var(--danger)' : 'var(--success)'}">${esc(a.status)}</span></div>
+            <div class="row" style="justify-content:space-between"><span class="muted">Reset / Validitas:</span><span class="font-mono text-muted">${esc(a.reset_info)}</span></div>
+            <div class="row" style="justify-content:space-between"><span class="muted">Konsumsi Router:</span><span class="font-mono font-semibold">${fmtTok(a.tokens_consumed)} (${fmtNum(a.requests_count)} reqs)</span></div>
+          </div>
+        </div>
+      `).join('');
+    }
+    const zenProv = (data.providers && data.providers['opencode-zen']) || {};
+    const zenExtra = zenProv.extra || {};
+    $('zenReqOk').textContent = `${fmtNum(zenProv.requests || 0)} / ${fmtNum(zenProv.success_count || 0)} OK`;
+    $('zenTokens').textContent = fmtTok(zenProv.total_tokens || 0);
+    $('zenEgress').textContent = zenExtra.egress_mode || 'direct';
+    $('zenLimits').textContent = `${fmtNum(zenProv.limit_count || 0)} kali`;
+    $('zenStatusBadge').textContent = zenProv.limit_count > 0 && zenProv.limit_count > (zenProv.requests || 1) * 0.5 ? 'Rate Limited' : 'Healthy';
+    $('zenStatusBadge').className = 'badge ' + (zenProv.limit_count > 0 && zenProv.limit_count > (zenProv.requests || 1) * 0.5 ? 'error' : 'success');
+    $('thPoolSummary').textContent = `${thExtra.total_keys || 0} Total (${thExtra.active_keys || 0} Aktif, ${thExtra.penalized_keys || 0} Limit)`;
+    const qp = thExtra.qwen_pool || {};
+    $('thQwenSummary').textContent = qp.dedicated ? `Dedicated (${qp.total_keys || 0} key, ${qp.active_keys || 0} aktif)` : 'Fallback ke pool utama';
+    $('thReqOk').textContent = `${fmtNum(thProv.requests || 0)} / ${fmtNum(thProv.success_count || 0)} OK`;
+    $('thTokens').textContent = fmtTok(thProv.total_tokens || 0);
+    $('thStatusBadge').textContent = (thExtra.active_keys > 0 ? 'Active' : (thExtra.total_keys > 0 ? 'All Limited' : 'Not Configured'));
+    $('thStatusBadge').className = 'badge ' + (thExtra.active_keys > 0 ? 'success' : (thExtra.total_keys > 0 ? 'error' : 'default'));
+    const keyList = thExtra.keys || [];
+    if (keyList.length === 0) {
+      $('thKeysList').innerHTML = '<div class="muted text-xs">Belum ada kunci Token Harbor terpasang.</div>';
+    } else {
+      $('thKeysList').innerHTML = keyList.map(k => `
+        <div class="row" style="justify-content:space-between;align-items:center;background:var(--surface-2);padding:6px 10px;border-radius:6px;font-size:12px">
+          <span class="font-mono">${esc(k.key)}</span>
+          <span class="badge ${k.status === 'ready' ? 'success' : 'error'}" style="font-size:11px">${k.status === 'ready' ? 'Siap Pakai' : `Limit 429 (Cooldown ${Math.ceil(k.cooldown_remaining_sec / 60)}m)`}</span>
+        </div>
+      `).join('');
+    }
+    const clineProv = (data.providers && data.providers.cline) || {};
+    const clineExtra = clineProv.extra || {};
+    $('clineReqOk').textContent = `${fmtNum(clineProv.requests || 0)} / ${fmtNum(clineProv.success_count || 0)} OK`;
+    $('clineTokens').textContent = fmtTok(clineProv.total_tokens || 0);
+    if (clineExtra.base_url) $('clineBaseUrlText').textContent = clineExtra.base_url;
+    $('clineStatusBadge').textContent = clineExtra.configured ? 'Active' : 'Not Configured';
+    $('clineStatusBadge').className = 'badge ' + (clineExtra.configured ? 'success' : 'default');
+    $('clineAccountStatus').textContent = clineExtra.configured ? 'Token Stored' : 'Belum Login';
+    const models = data.models || [];
+    const modelsBody = $('quotaModelsBody');
+    if (models.length === 0) {
+      modelsBody.innerHTML = '<tr><td colspan="7" class="empty">Belum ada data request model.</td></tr>';
+    } else {
+      modelsBody.innerHTML = models.map(m => `
+        <tr>
+          <td><span class="mono font-semibold" style="color:var(--text-main)">${esc(m.model)}</span></td>
+          <td class="mono">${fmtNum(m.requests)}</td>
+          <td class="mono muted">${fmtTok(m.input_tokens)}</td>
+          <td class="mono muted">${fmtTok(m.output_tokens)}</td>
+          <td class="mono font-semibold">${fmtTok(m.total_tokens)}</td>
+          <td><div class="row" style="gap:6px;align-items:center"><div style="flex:1;background:var(--surface-2);height:6px;border-radius:3px;overflow:hidden"><div style="background:var(--primary);height:100%;width:${Math.min(100, Math.max(1, m.token_share))}%"></div></div><span class="mono text-xs muted" style="width:38px;text-align:right">${m.token_share.toFixed(1)}%</span></div></td>
+          <td class="mono">${m.limit_count > 0 ? `<span class="badge error" style="font-size:10px">${m.limit_count}</span>` : '0'}</td>
+        </tr>
+      `).join('');
+    }
+    const daily = data.daily || [];
+    const dailyChart = $('quotaDailyChart');
+    if (daily.length === 0) {
+      dailyChart.innerHTML = '<div class="muted text-sm">Belum ada riwayat harian.</div>';
+    } else {
+      const maxTokens = Math.max(...daily.map(d => d.total_tokens), 1);
+      dailyChart.innerHTML = daily.map(d => {
+        const pct = Math.min(100, Math.max(2, (d.total_tokens / maxTokens) * 100));
+        return `<div class="stack" style="gap:4px"><div class="row" style="justify-content:space-between;font-size:12px"><span class="font-mono font-semibold">${esc(d.date)}</span><span class="muted font-mono">${fmtTok(d.total_tokens)} (${fmtNum(d.requests)} reqs${d.limit_count > 0 ? `, ${d.limit_count} limits` : ''})</span></div><div style="background:var(--surface-2);height:14px;border-radius:4px;overflow:hidden"><div style="background:linear-gradient(90deg, var(--primary), #60a5fa);height:100%;width:${pct}%;transition:width 0.4s ease"></div></div></div>`;
+      }).join('');
+    }
+    const clients = data.client_keys || [];
+    const clientsBody = $('quotaClientsBody');
+    if (clients.length === 0) {
+      clientsBody.innerHTML = '<tr><td colspan="6" class="empty">Belum ada client key.</td></tr>';
+    } else {
+      clientsBody.innerHTML = clients.map(c => `
+        <tr>
+          <td><span class="font-semibold" style="color:var(--text-main)">${esc(c.key_name)}</span></td>
+          <td class="mono">${fmtNum(c.requests)}</td>
+          <td class="mono muted">${fmtTok(c.input_tokens)}</td>
+          <td class="mono muted">${fmtTok(c.output_tokens)}</td>
+          <td class="mono font-semibold">${fmtTok(c.total_tokens)}</td>
+          <td class="muted text-xs">${fmtTime(c.last_used_at)}</td>
+        </tr>
+      `).join('');
+    }
+  } catch (err) {
+    console.error('loadQuota error:', err);
+  }
+}
+
+/* ── Proxies ───────────────────────────────────────────────────────────── */
+async function loadProxies() {
+  let data;
+  try { data = await (await fetch('/api/proxies')).json(); }
+  catch { toast('Gagal memuat daftar relay', 'error'); return; }
+  const pools = data.pools || [];
+  $('rotateToggle').checked = data.rotate_on_429 !== false;
+
+  $('proxiesBody').innerHTML = pools.map(p => {
+    const state = p.last_error ? 'error' : (p.test_ok === 0 ? 'error' : (p.active ? 'success' : 'default'));
+    const label = p.last_error ? 'error' : (p.test_ok === 0 ? 'test failed' : (p.active ? 'active' : 'inactive'));
+    return `
+    <tr>
+      <td><b>${esc(p.name)}</b></td>
+      <td class="mono" style="font-size:11px">${esc(p.url)}</td>
+      <td><span class="badge default">${esc(p.type)}</span></td>
+      <td class="mono">${fmtNum(p.request_count)}</td>
+      <td><span class="badge ${state}"><span class="dot"></span>${label}</span></td>
+      <td class="row" style="justify-content:flex-end;gap:6px">
+        <button class="btn sm secondary" onclick="testProxy(${p.id})">Test</button>
+        <button class="btn sm secondary" onclick="toggleProxy(${p.id}, ${p.active ? 'false' : 'true'})">${p.active ? 'Disable' : 'Enable'}</button>
+        <button class="btn sm ghost" onclick="delProxy(${p.id})" title="Delete"><span class="material-symbols-outlined" style="color:var(--danger)">delete</span></button>
+      </td>
+    </tr>
+    ${p.last_error ? `<tr><td colspan="6" style="color:var(--danger);font-size:12px">${esc(p.last_error)}</td></tr>` : ''}`;
+  }).join('') || '<tr><td colspan="6" class="empty">No relay configured. Deploy one above.</td></tr>';
+}
+async function deployCloudflare() {
+  const btn = $('cfDeployBtn');
+  const accountId = $('cfAccountId').value.trim();
+  const apiToken = $('cfApiToken').value.trim();
+  if (!accountId || !apiToken) { toast('Account ID dan API Token wajib diisi', 'warning'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined spin">progress_activity</span>Deploying…';
+  try {
+    const res = await fetch('/api/proxies/cloudflare', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ account_id: accountId, api_token: apiToken, worker_name: $('cfWorkerName').value.trim(), subdomain: $('cfSubdomain').value.trim() }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!data) {
+      // A proxy, gateway, or crash can return HTML; never surface that as
+      // "[object Object]" or an opaque parse error.
+      toast(`Unexpected response from the router (HTTP ${res.status})`, 'error', 'Deploy failed');
+      return;
+    }
+    if (data.error) {
+      toast(errText(data.error), 'error', 'Deploy failed');
+    } else {
+      const t = data.test || {};
+      toast(data.deploy_url + (t.ok ? ' — test OK' : ' — test failed'), t.ok ? 'success' : 'warning', 'Relay deployed');
+      $('cfApiToken').value = '';
+      await loadProxies();
+    }
+  } catch (e) {
+    toast(errText(e), 'error', 'Deploy failed');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined">rocket_launch</span>Deploy relay';
+  }
+}
+async function addProxy() {
+  const url = $('manualProxyUrl').value.trim();
+  if (!url) { toast('URL relay wajib diisi', 'warning'); return; }
+  const res = await fetch('/api/proxies', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ name: $('manualProxyName').value.trim(), url, type: 'custom' }),
+  });
+  const data = await res.json();
+  if (data.error) { toast(errText(data.error), 'error'); return; }
+  $('manualProxyName').value = ''; $('manualProxyUrl').value = '';
+  await loadProxies(); toast('Relay ditambahkan', 'success');
+}
+async function testProxy(id) {
+  toast('Testing relay…', 'info');
+  const data = await (await fetch(`/api/proxies/${id}/test`, { method: 'POST' })).json();
+  if (data.ok) toast(`${data.elapsed_ms}ms${data.egress_ip ? ' · IP ' + data.egress_ip : ''}`, 'success', 'Relay OK');
+  else toast(errText(data.error) || ('HTTP ' + data.status), 'error', 'Relay failed');
+  await loadProxies();
+}
+async function toggleProxy(id, active) {
+  await fetch(`/api/proxies/${id}/toggle`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ active }),
+  });
+  await loadProxies();
+}
+async function delProxy(id) {
+  if (!confirm('Hapus relay ini?')) return;
+  await fetch(`/api/proxies/${id}`, { method: 'DELETE' });
+  await loadProxies(); toast('Relay dihapus', 'success');
+}
+async function setRotation() {
+  const enabled = $('rotateToggle').checked;
+  await fetch('/api/proxies/rotation', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ enabled }),
+  });
+  toast('Rotasi otomatis ' + (enabled ? 'aktif' : 'nonaktif'), 'success');
+}
+async function rotateNow() {
+  const data = await (await fetch('/api/proxies/rotate', { method: 'POST' })).json();
+  if (!data.ok) { toast(data.reason || 'Tidak ada relay aktif', 'warning'); return; }
+  toast(data.now_using + (data.egress_ip ? ' · IP ' + data.egress_ip : ''), 'success', 'Rotated');
+  await loadProxies();
+}
+
+/* ── Loaders ───────────────────────────────────────────────────────────── */
+async function loadStats() {
+  const s = await (await fetch('/api/stats')).json();
+  $('sTotal').textContent = fmtNum(s.total);
+  $('sTotalSub').textContent = fmtNum(s.last_24h) + ' in last 24h';
+  const rate = s.total ? Math.round((s.ok / s.total) * 100) : 100;
+  $('sOk').textContent = rate + '%';
+  $('sOkSub').textContent = fmtNum(s.ok) + ' ok / ' + fmtNum(s.failed) + ' failed';
+  $('sIn').textContent = fmtNum(s.input_tokens);
+  $('sOut').textContent = fmtNum(s.output_tokens);
+  $('sMs').textContent = fmtNum(s.avg_ms);
+}
+async function loadKeys() { KEYS = await (await fetch('/api/keys')).json(); renderKeys(); renderConnect(); }
+async function loadModels() {
+  MODELS = await (await fetch('/api/models?all=1')).json();
+  MODELS.sort((a, b) => a.id.localeCompare(b.id));
+  renderModels();
+
+  const groups = {};
+  for (const m of MODELS) (groups[m.provider || 'other'] ||= []).push(m);
+  $('pgModel').innerHTML = Object.keys(groups).sort().map(p =>
+    `<optgroup label="${esc(p)}">` +
+    groups[p].map(m => `<option value="${esc(m.id)}">${esc(m.id)}</option>`).join('') +
+    `</optgroup>`).join('');
+
+  // Model ids in the dropdown carry a provider prefix, while CONFIG.default_model
+  // is bare. Compare on the last path segment so the configured default is
+  // actually selected instead of falling through to an arbitrary free model.
+  const bare = (id) => String(id).split('/').pop();
+  const wantDefault = bare(CONFIG.default_model || '');
+  const preferred = MODELS.find(m => bare(m.id) === wantDefault)
+    || MODELS.find(m => m.provider === 'opencode-zen' && m.free)
+    || MODELS[0];
+  if (preferred) $('pgModel').value = preferred.id;
+}
+async function loadLogs() { renderLogs(await (await fetch('/api/requests?limit=80')).json()); }
+
+async function createKey() {
+  const name = $('newKeyName').value.trim() || 'untitled';
+  await fetch('/api/keys', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
+  $('newKeyName').value = '';
+  await loadKeys(); toast('Key created', 'success');
+}
+async function toggleKey(id, revoke) {
+  await fetch(`/api/keys/${id}/${revoke ? 'revoke' : 'restore'}`, { method: 'POST' });
+  await loadKeys(); toast(revoke ? 'Key revoked' : 'Key restored', 'success');
+}
+async function delKey(id) {
+  if (!confirm('Delete this key permanently?')) return;
+  await fetch(`/api/keys/${id}`, { method: 'DELETE' });
+  await loadKeys(); toast('Key deleted', 'success');
+}
+async function clearLogs() {
+  if (!confirm('Clear all request logs?')) return;
+  await fetch('/api/requests', { method: 'DELETE' });
+  await loadLogs(); await loadStats(); toast('Logs cleared', 'success');
+}
+async function runPlayground() {
+  const btn = $('pgBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined spin">progress_activity</span>Sending…';
+  $('pgOut').textContent = 'Waiting for response…';
+  try {
+    const res = await fetch('/api/playground', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt: $('pgPrompt').value, model: $('pgModel').value }),
+    });
+    const data = await res.json();
+    $('pgOut').textContent = data.error ? ('Error: ' + errText(data.error)) : (data.text || '(empty response)');
+    await loadStats(); await loadLogs();
+  } catch (e) {
+    $('pgOut').textContent = 'Request failed: ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined">send</span>Send';
+  }
+}
+
+
+/* ── Header Adaptation (gate monitoring) ───────────────────────────────── */
+function fmtAge(sec) {
+  if (sec < 60) return sec + 's lalu';
+  if (sec < 3600) return Math.floor(sec / 60) + 'm lalu';
+  if (sec < 86400) return Math.floor(sec / 3600) + 'h lalu';
+  return Math.floor(sec / 86400) + 'd lalu';
+}
+
+async function loadGate() {
+  let d;
+  try { d = await (await fetch('/api/gate')).json(); }
+  catch (e) { toast(errText(e) || 'Gagal memuat status gate', 'error'); return; }
+
+  if (d.enabled === false) {
+    $('gateVerdict').className = 'badge default';
+    $('gateVerdict').textContent = 'disabled';
+    $('gateSource').textContent = d.reason || '–';
+    return;
+  }
+
+  const healthy = d.verdict === 'ok';
+  const isProbe = d.source === 'probe';
+  $('gateVerdict').className = 'badge ' + (healthy ? 'success' : (isProbe ? 'warning' : 'default'));
+  $('gateVerdict').innerHTML = `<span class="dot"></span>${esc(d.verdict)}`;
+  $('gateSource').textContent = d.source;
+  $('gateAge').textContent = fmtAge(d.age_seconds || 0);
+  $('gateLatency').textContent = (d.latency_ms || 0) + ' ms';
+
+  // Profile table
+  const rows = [
+    ['User-Agent', d.user_agent || '–'],
+    ['Versi minimum', d.min_version || '–'],
+    ['Pola session', d.session_pattern || '–'],
+    ['Wajib stream', d.requires_stream ? 'ya' : 'tidak'],
+    ['Tool wajib', (d.required_tools || []).join(', ') || '–'],
+    ['Tool tambahan', d.accepts_tool_superset ? 'ditoleransi' : 'tidak ditoleransi'],
+  ];
+  $('gateProfileBody').innerHTML = rows.map(([k, v]) => `
+    <tr><td class="muted" style="width:180px">${esc(k)}</td><td class="mono">${esc(v)}</td></tr>`).join('');
+
+  // Adaptations
+  const ad = d.adaptations || [];
+  $('gateAdaptations').innerHTML = ad.length
+    ? ad.map(a => `<div class="row" style="gap:10px;padding:8px 0;border-bottom:1px solid var(--border-subtle)">
+        <span class="material-symbols-outlined c-success" style="font-size:18px">check_circle</span>
+        <span style="font-size:.875rem">${esc(a)}</span></div>`).join('')
+    : '<p class="muted" style="margin:0">Belum ada data. Jalankan probe.</p>';
+
+  // Conditions
+  const conds = d.conditions || [];
+  $('gateConditionsBody').innerHTML = conds.map(c => `
+    <tr>
+      <td class="mono">${esc(c.name)}</td>
+      <td><span class="badge ${c.ok ? 'success' : 'error'}"><span class="dot"></span>${c.ok ? 'ok' : 'gagal'}</span></td>
+      <td class="muted">${esc(c.detail || (c.status ? 'HTTP ' + c.status : '–'))}</td>
+    </tr>`).join('') || '<tr><td colspan="3" class="empty">Belum ada hasil probe.</td></tr>';
+}
+
+async function refreshGate() {
+  const btn = $('gateProbeBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined spin">progress_activity</span>Probing…';
+  try {
+    const d = await (await fetch('/api/gate/refresh', { method: 'POST' })).json();
+    if (d.error) toast(errText(d.error), 'error', 'Probe gagal');
+    else toast('Tool wajib: ' + (d.required_tools || []).join(', '), d.verdict === 'ok' ? 'success' : 'warning', 'Probe selesai');
+    await loadGate();
+  } catch (e) {
+    toast(e.message, 'error', 'Probe gagal');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined">radar</span>Probe ulang';
+  }
+}
+
+async function testGate() {
+  const btn = $('gateTestBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined spin">progress_activity</span>Testing…';
+  $('gateTestOut').innerHTML = '<span class="muted">Mengirim request tanpa tool sama sekali…</span>';
+  try {
+    const d = await (await fetch('/api/gate/test', { method: 'POST' })).json();
+    const ok = d.ok;
+    $('gateTestOut').innerHTML = `
+      <div class="row" style="gap:10px;margin-bottom:10px">
+        <span class="badge ${ok ? 'success' : 'error'}"><span class="dot"></span>${ok ? 'berhasil' : 'gagal'}</span>
+        <span class="muted mono">${d.elapsed_ms}ms</span>
+      </div>
+      <div class="kv">
+        <span class="muted">Tool disuntik</span><span class="mono">${d.tools_injected ?? 0}</span>
+        <span class="muted">Tool wajib</span><span class="mono">${esc((d.required_tools || []).join(', '))}</span>
+        <span class="muted">stream dipaksa</span><span class="mono">${esc(String(d.stream_forced))}</span>
+        <span class="muted">Sumber profil</span><span class="mono">${esc(d.profile_source || '–')}</span>
+        <span class="muted">Lewat</span><span class="mono">${d.transport ? 'mihomo (proxy)' : 'langsung'}</span>
+        <span class="muted">Balasan</span><span class="mono">${esc(d.text || errText(d.error) || '–')}</span>
+      </div>`;
+    if (ok) {
+      toast('Adaptasi bekerja', 'success');
+    } else if (/FreeUsageLimit|Rate limit/i.test(d.error || '')) {
+      toast('IP egress kena rate limit. Pakai IP Rotation untuk pindah node, lalu tes lagi.',
+            'warning', 'Bukan masalah adaptasi');
+    } else if (d.error) {
+      toast(errText(d.error), 'error', 'Tes gagal');
+    } else {
+      toast('Balasan tidak sesuai harapan', 'warning');
+    }
+  } catch (e) {
+    $('gateTestOut').innerHTML = `<span class="c-danger">${esc(e.message)}</span>`;
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined">bolt</span>Tes end-to-end';
+  }
+}
+/* ── IP Rotation (mihomo) ──────────────────────────────────────────────── */
+async function loadMihomo() {
+  let d;
+  try { d = await (await fetch('/api/mihomo')).json(); }
+  catch (e) { toast(errText(e) || 'Gagal memuat status mihomo', 'error'); return; }
+
+  $('mihomoEnabled').checked = !!d.enabled;
+  $('mihomoRotate').checked = d.rotate_on_limit !== false;
+
+  const ok = d.reachable && !d.error;
+  $('mihomoBadge').className = 'badge ' + (ok ? 'success' : (d.reachable ? 'warning' : 'error'));
+  $('mihomoBadge').innerHTML = `<span class="dot"></span>${
+    ok ? 'aktif' : (d.reachable ? 'sebagian' : 'tidak terjangkau')}`;
+
+  $('mihomoVersion').textContent = d.version || '–';
+  $('mihomoGroupName').textContent = d.group || '–';
+  $('mihomoNode').textContent = d.node || '–';
+  $('mihomoIP').textContent = d.egress_ip || '–';
+
+  if (d.error) toast(d.error, 'warning');
+
+  // Connection fields, only when empty so typing is not clobbered.
+  if (!$('mihomoController').value) $('mihomoController').placeholder = d.controller || 'http://127.0.0.1:9090';
+  if (!$('mihomoProxy').value) $('mihomoProxy').placeholder = d.proxy || 'http://127.0.0.1:7890';
+
+  const groups = d.groups || [];
+  $('mihomoGroupsBody').innerHTML = groups.map(g => `
+    <tr>
+      <td><b>${esc(g.name)}</b></td>
+      <td class="mono muted">${esc(g.now || '–')}</td>
+      <td><span class="badge ${g.nodes > 0 ? 'success' : 'error'}">${g.nodes}</span></td>
+      <td class="row" style="justify-content:flex-end">
+        <button class="btn sm secondary" onclick="useGroup('${esc(g.name)}')"
+          ${g.name === d.group ? 'disabled' : ''}>
+          ${g.name === d.group ? 'dipakai' : 'pakai'}
+        </button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="4" class="empty">Tidak ada group Selector.</td></tr>';
+}
+
+async function saveMihomo() {
+  const body = {
+    enabled: $('mihomoEnabled').checked,
+    rotate_on_limit: $('mihomoRotate').checked,
+    controller: $('mihomoController').value.trim(),
+    proxy: $('mihomoProxy').value.trim(),
+    secret: $('mihomoSecret').value.trim(),
+  };
+  const d = await (await fetch('/api/mihomo', {
+    method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+  })).json();
+  if (d.error) toast(errText(d.error), 'error');
+  else toast('Pengaturan disimpan', 'success');
+  await loadMihomo();
+}
+
+async function useGroup(name) {
+  await fetch('/api/mihomo', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ group: name }),
+  });
+  toast('Group dipakai: ' + name, 'success');
+  await loadMihomo();
+}
+
+async function rotateMihomo() {
+  const btn = $('mihomoRotateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined spin">progress_activity</span>Rotating…';
+  try {
+    const d = await (await fetch('/api/mihomo/rotate', { method: 'POST' })).json();
+    if (d.error) toast(errText(d.error), 'error', 'Rotate gagal');
+    else toast(`${d.previous_ip || '?'} → ${d.egress_ip || '?'}`, 'success', 'IP berubah');
+    await loadMihomo();
+  } catch (e) {
+    toast(errText(e), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined">sync</span>Rotate sekarang';
+  }
+}
+
+async function testMihomo() {
+  const btn = $('mihomoTestBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined spin">progress_activity</span>Testing…';
+  $('mihomoTestOut').innerHTML = '<span class="muted">Mengirim request lewat proxy…</span>';
+  try {
+    const d = await (await fetch('/api/mihomo/test', { method: 'POST' })).json();
+    const ok = d.ok;
+    $('mihomoTestOut').innerHTML = `
+      <div class="row" style="gap:10px;margin-bottom:10px">
+        <span class="badge ${ok ? 'success' : 'error'}"><span class="dot"></span>${ok ? 'berhasil' : 'gagal'}</span>
+        <span class="muted mono">${d.elapsed_ms || 0}ms</span>
+      </div>
+      <div class="kv">
+        <span class="muted">IP egress</span><span class="mono">${esc(d.egress_ip || '–')}</span>
+        <span class="muted">Status Zen</span><span class="mono">${esc(String(d.status || '–'))}</span>
+        ${d.hint ? `<span class="muted">Catatan</span><span>${esc(d.hint)}</span>` : ''}
+        ${d.error ? `<span class="muted">Error</span><span style="color:var(--danger)">${esc(d.error)}</span>` : ''}
+      </div>`;
+    toast(ok ? 'Proxy bisa dipakai Zen' : 'Proxy gagal', ok ? 'success' : 'error');
+  } catch (e) {
+    $('mihomoTestOut').innerHTML = `<span style="color:var(--danger)">${esc(e.message)}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined">bolt</span>Tes ke Zen';
+  }
+}
+
+async function refreshAll() {
+  try { CONFIG = await (await fetch('/api/config')).json(); }
+  catch { toast('Cannot reach the router', 'error'); return; }
+  await Promise.all([loadStats(), loadKeys(), loadModels(), loadLogs()]);
+  toast('Refreshed', 'success');
+}
+
+window.addEventListener('message', (e) => {
+  if (e.data === 'mot-router-auth') { loadProviders(); toast('Account connected', 'success'); }
+});
+
+/* Boot */
+(async () => {
+  try { CONFIG = await (await fetch('/api/config')).json(); }
+  catch { toast('Cannot reach the router', 'error'); return; }
+  await Promise.all([loadStats(), loadKeys(), loadModels(), loadLogs()]);
+  showTab('connect');
+})();
+setInterval(loadStats, 15000);
+</script>
+</body>
+</html>
