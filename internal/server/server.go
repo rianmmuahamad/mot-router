@@ -449,8 +449,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, surface str
 	w.Header().Set("Connection", "keep-alive")
 	w.WriteHeader(http.StatusOK)
 
-	chunks := translate.StreamOpenAI(events, model, toolMap)
-	usage := translate.WriteOpenAIStream(w, chunks)
+	usage := translate.StreamOpenAI(w, events, model, toolMap)
 	if usage != nil {
 		base.In, base.Out = usage.PromptTokens, usage.CompletionTokens
 	}

@@ -251,13 +251,24 @@ func newChunk(id, model string, created int64, delta any, finish any) OpenAIChun
 	return c
 }
 
-// StreamOpenAI translates a Zen event channel into Chat Completions SSE chunks.
-// Tool calls are emitted whole: clients accumulate arguments, so partial
-// streaming buys nothing.
-func StreamOpenAI(events <-chan zen.Event, model string, toolMap *zen.ToolInjection) []OpenAIChunk {
+// StreamOpenAI translates a Zen event channel into Chat Completions SSE chunks and writes them directly to w.
+// Chunks are flushed immediately as events arrive from upstream, preventing client-side first-event timeouts.
+func StreamOpenAI(w io.Writer, events <-chan zen.Event, model string, toolMap *zen.ToolInjection) *OpenAIUsage {
 	id := "chatcmpl-" + randomHex(12)
 	created := time.Now().Unix()
-	out := []OpenAIChunk{}
+
+	flusher, _ := w.(interface{ Flush() })
+	emitChunk := func(delta openAIDelta, finishReason any, usage *OpenAIUsage) {
+		chunk := newChunk(id, model, created, delta, finishReason)
+		chunk.Usage = usage
+		payload, err := json.Marshal(chunk)
+		if err == nil {
+			fmt.Fprintf(w, "data: %s\n\n", payload)
+			if flusher != nil {
+				flusher.Flush()
+			}
+		}
+	}
 
 	roleSent := false
 	var finishReason any = nil
@@ -266,15 +277,12 @@ func StreamOpenAI(events <-chan zen.Event, model string, toolMap *zen.ToolInject
 	for ev := range events {
 		switch ev.Type {
 		case "response.reasoning_summary_text.delta":
-			// Reasoning is emitted before the answer. Send the role first so a
-			// client that only watches content deltas still sees a well-formed
-			// stream.
 			delta := openAIDelta{ReasoningContent: ev.Delta}
 			if !roleSent {
 				delta.Role = "assistant"
 				roleSent = true
 			}
-			out = append(out, newChunk(id, model, created, delta, nil))
+			emitChunk(delta, nil, nil)
 
 		case "response.output_text.delta":
 			delta := openAIDelta{Content: ev.Delta}
@@ -282,7 +290,7 @@ func StreamOpenAI(events <-chan zen.Event, model string, toolMap *zen.ToolInject
 				delta.Role = "assistant"
 				roleSent = true
 			}
-			out = append(out, newChunk(id, model, created, delta, nil))
+			emitChunk(delta, nil, nil)
 
 		case "response.output_item.done":
 			if ev.Item == nil || ev.Item.Type != "function_call" {
@@ -290,7 +298,7 @@ func StreamOpenAI(events <-chan zen.Event, model string, toolMap *zen.ToolInject
 			}
 			if !roleSent {
 				roleSent = true
-				out = append(out, newChunk(id, model, created, openAIDelta{Role: "assistant"}, nil))
+				emitChunk(openAIDelta{Role: "assistant"}, nil, nil)
 			}
 			callID := ev.Item.CallID
 			if callID == "" {
@@ -298,8 +306,6 @@ func StreamOpenAI(events <-chan zen.Event, model string, toolMap *zen.ToolInject
 			}
 			name, args, ok := zen.RewriteToolName(lower(ev.Item.Name), toolMap, ev.Item.Arguments)
 			if !ok {
-				// Injected by the router with no client equivalent: drop it rather
-				// than hand the client a tool it never declared.
 				continue
 			}
 
@@ -307,7 +313,7 @@ func StreamOpenAI(events <-chan zen.Event, model string, toolMap *zen.ToolInject
 			call.Function.Name = name
 			call.Function.Arguments = args
 			finishReason = "tool_calls"
-			out = append(out, newChunk(id, model, created, openAIDelta{ToolCalls: []OpenAIToolCallDelta{call}}, nil))
+			emitChunk(openAIDelta{ToolCalls: []OpenAIToolCallDelta{call}}, nil, nil)
 
 		case "response.completed":
 			if ev.Response != nil && ev.Response.Usage != nil {
@@ -323,29 +329,11 @@ func StreamOpenAI(events <-chan zen.Event, model string, toolMap *zen.ToolInject
 	if finishReason == nil {
 		finishReason = "stop"
 	}
-	final := newChunk(id, model, created, openAIDelta{}, finishReason)
-	final.Usage = usage
-	out = append(out, final)
+	emitChunk(openAIDelta{}, finishReason, usage)
 
-	return out
-}
-
-// WriteOpenAIStream writes SSE frames and returns the observed usage.
-func WriteOpenAIStream(w io.Writer, chunks []OpenAIChunk) *OpenAIUsage {
-	var usage *OpenAIUsage
-	for _, chunk := range chunks {
-		payload, err := json.Marshal(chunk)
-		if err != nil {
-			continue
-		}
-		fmt.Fprintf(w, "data: %s\n\n", payload)
-		if chunk.Usage != nil {
-			usage = chunk.Usage
-		}
-	}
 	fmt.Fprint(w, "data: [DONE]\n\n")
-	if f, ok := w.(interface{ Flush() }); ok {
-		f.Flush()
+	if flusher != nil {
+		flusher.Flush()
 	}
 	return usage
 }

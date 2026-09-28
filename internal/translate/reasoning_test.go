@@ -1,6 +1,9 @@
 package translate
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -59,15 +62,30 @@ func TestCollectOpenAIOmitsReasoningWhenAbsent(t *testing.T) {
 // TestStreamOpenAIEmitsReasoningBeforeContent checks ordering: a client renders
 // reasoning as it arrives, so it must precede the answer.
 func TestStreamOpenAIEmitsReasoningBeforeContent(t *testing.T) {
-	chunks := StreamOpenAI(reasoningEvents(), "test-model", nil)
+	var buf bytes.Buffer
+	StreamOpenAI(&buf, reasoningEvents(), "test-model", nil)
+
+	var chunks []OpenAIChunk
+	scanner := bufio.NewScanner(&buf)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "data: ") && line != "data: [DONE]" {
+			var chunk OpenAIChunk
+			if err := json.Unmarshal([]byte(line[6:]), &chunk); err == nil {
+				chunks = append(chunks, chunk)
+			}
+		}
+	}
 
 	firstReasoning, firstContent := -1, -1
 	var reasoning strings.Builder
 	for i, c := range chunks {
-		d, ok := c.Choices[0].Delta.(openAIDelta)
-		if !ok {
+		if len(c.Choices) == 0 {
 			continue
 		}
+		raw, _ := json.Marshal(c.Choices[0].Delta)
+		var d openAIDelta
+		_ = json.Unmarshal(raw, &d)
 		if d.ReasoningContent != "" {
 			if firstReasoning < 0 {
 				firstReasoning = i
