@@ -221,7 +221,11 @@ func isKeyRevokedOrDisabled(status int, detail []byte) bool {
 			strings.Contains(s, "Free-model consent") ||
 			strings.Contains(s, "consent has changed") ||
 			strings.Contains(s, "invalid_api_key") ||
-			strings.Contains(s, "account_suspended") {
+			strings.Contains(s, "account_suspended") ||
+			strings.Contains(s, "request was refused") ||
+			strings.Contains(s, "contact support from the email address") ||
+			strings.Contains(s, "terms_violation") ||
+			strings.Contains(s, "account_restricted") {
 			return true
 		}
 	}
