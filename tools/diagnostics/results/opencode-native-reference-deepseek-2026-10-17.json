@@ -1,0 +1,50 @@
+{
+  "probe_model": "deepseek-v4.1-flash-free",
+  "source": "probe",
+  "verdict": "ok",
+  "client_format": "v2",
+  "verified_version": "2.0.29",
+  "user_agent": "opencode/latest/2.0.29/cli",
+  "required_tools": [
+    "shell",
+    "edit",
+    "glob",
+    "grep",
+    "read",
+    "write",
+    "skill",
+    "subagent",
+    "webfetch",
+    "websearch",
+    "question",
+    "execute"
+  ],
+  "conditions": [
+    {
+      "name": "baseline",
+      "ok": true,
+      "status": 200,
+      "inconclusive": null
+    },
+    {
+      "name": "required_tools",
+      "ok": true,
+      "status": 0,
+      "inconclusive": null,
+      "body": null
+    },
+    {
+      "name": "client_version",
+      "ok": true,
+      "status": 0,
+      "inconclusive": null,
+      "body": null
+    },
+    {
+      "name": "profile_verified",
+      "ok": true,
+      "status": 200,
+      "inconclusive": null
+    }
+  ]
+}

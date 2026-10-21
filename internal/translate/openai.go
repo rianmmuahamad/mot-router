@@ -18,6 +18,13 @@ type OpenAIChatRequest struct {
 	MaxCompletionTokens int             `json:"max_completion_tokens"`
 	ReasoningEffort     string          `json:"reasoning_effort"`
 	Stream              *bool           `json:"stream"`
+	Temperature         *float64        `json:"temperature"`
+	TopP                *float64        `json:"top_p"`
+	Stop                any             `json:"stop"`
+	ResponseFormat      map[string]any  `json:"response_format"`
+	ToolChoice          any             `json:"tool_choice"`
+	ParallelToolCalls   *bool           `json:"parallel_tool_calls"`
+	Seed                *int64          `json:"seed"`
 }
 
 // OpenAIMessage is one conversation turn.
@@ -125,6 +132,7 @@ func OpenAIToZen(req *OpenAIChatRequest, model string, gate *zen.GateProfile) (*
 				parts = append(parts, map[string]any{
 					"type":      "input_image",
 					"image_url": asString(url["url"]),
+					"detail":    url["detail"],
 				})
 			}
 		}
@@ -147,7 +155,11 @@ func OpenAIToZen(req *OpenAIChatRequest, model string, gate *zen.GateProfile) (*
 		})
 	}
 	tools, toolMap := zen.PrepareTools(clientTools, gate)
+	zen.NormalizeToolHistory(items, toolMap)
 
+	if req.MaxTokens < 0 || req.MaxCompletionTokens < 0 {
+		return nil, fmt.Errorf("token limits cannot be negative")
+	}
 	maxTokens := req.MaxCompletionTokens
 	if maxTokens == 0 {
 		maxTokens = req.MaxTokens
@@ -164,6 +176,33 @@ func OpenAIToZen(req *OpenAIChatRequest, model string, gate *zen.GateProfile) (*
 		"stream":            true,  // required by the free-tier gate
 		"tools":             tools, // required by the free-tier gate
 		"tool_choice":       "auto",
+	}
+	if req.Temperature != nil {
+		body["temperature"] = *req.Temperature
+	}
+	if req.TopP != nil {
+		body["top_p"] = *req.TopP
+	}
+	if req.Stop != nil {
+		body["stop"] = req.Stop
+	}
+	if req.ResponseFormat != nil {
+		body["response_format"] = req.ResponseFormat
+	}
+	if req.ToolChoice != nil {
+		choice := req.ToolChoice
+		if named, ok := choice.(map[string]any); ok {
+			if fn, ok := named["function"].(map[string]any); ok {
+				choice = map[string]any{"type": "function", "name": lower(asString(fn["name"]))}
+			}
+		}
+		body["tool_choice"] = choice
+	}
+	if req.ParallelToolCalls != nil {
+		body["parallel_tool_calls"] = *req.ParallelToolCalls
+	}
+	if req.Seed != nil {
+		body["seed"] = *req.Seed
 	}
 	if req.ReasoningEffort != "" {
 		body["reasoning"] = map[string]any{"effort": req.ReasoningEffort, "summary": "auto"}
@@ -273,8 +312,24 @@ func StreamOpenAI(w io.Writer, events <-chan zen.Event, model string, toolMap *z
 	roleSent := false
 	var finishReason any = nil
 	var usage *OpenAIUsage
+	var failure *zen.StreamError
+	toolIndex := 0
 
 	for ev := range events {
+		if failure != nil {
+			continue
+		}
+		if failure = eventFailure(ev); failure != nil {
+			payload, _ := json.Marshal(zen.ErrorBody(failure))
+			fmt.Fprintf(w, "data: %s\n\n", payload)
+			if flusher != nil {
+				flusher.Flush()
+			}
+			continue
+		}
+		if ev.FinishReason != "" {
+			finishReason = ev.FinishReason
+		}
 		switch ev.Type {
 		case "response.reasoning_summary_text.delta":
 			delta := openAIDelta{ReasoningContent: ev.Delta}
@@ -309,13 +364,14 @@ func StreamOpenAI(w io.Writer, events <-chan zen.Event, model string, toolMap *z
 				continue
 			}
 
-			call := OpenAIToolCallDelta{Index: 0, ID: callID, Type: "function"}
+			call := OpenAIToolCallDelta{Index: toolIndex, ID: callID, Type: "function"}
+			toolIndex++
 			call.Function.Name = name
 			call.Function.Arguments = args
 			finishReason = "tool_calls"
 			emitChunk(openAIDelta{ToolCalls: []OpenAIToolCallDelta{call}}, nil, nil)
 
-		case "response.completed":
+		case "response.completed", "response.incomplete":
 			if ev.Response != nil && ev.Response.Usage != nil {
 				usage = &OpenAIUsage{
 					PromptTokens:     ev.Response.Usage.InputTokens,
@@ -326,6 +382,9 @@ func StreamOpenAI(w io.Writer, events <-chan zen.Event, model string, toolMap *z
 		}
 	}
 
+	if failure != nil {
+		return nil
+	}
 	if finishReason == nil {
 		finishReason = "stop"
 	}
@@ -344,8 +403,19 @@ func CollectOpenAI(events <-chan zen.Event, model string, toolMap *zen.ToolInjec
 	reasoning := ""
 	toolCalls := []map[string]any{}
 	var usage *OpenAIUsage
+	finishReason := ""
+	var failure *zen.StreamError
 
 	for ev := range events {
+		if failure != nil {
+			continue
+		}
+		if failure = eventFailure(ev); failure != nil {
+			continue
+		}
+		if ev.FinishReason != "" {
+			finishReason = ev.FinishReason
+		}
 		switch ev.Type {
 		case "response.reasoning_summary_text.delta":
 			reasoning += ev.Delta
@@ -376,7 +446,7 @@ func CollectOpenAI(events <-chan zen.Event, model string, toolMap *zen.ToolInjec
 				},
 			})
 
-		case "response.completed":
+		case "response.completed", "response.incomplete":
 			if ev.Response != nil && ev.Response.Usage != nil {
 				usage = &OpenAIUsage{
 					PromptTokens:     ev.Response.Usage.InputTokens,
@@ -387,6 +457,9 @@ func CollectOpenAI(events <-chan zen.Event, model string, toolMap *zen.ToolInjec
 		}
 	}
 
+	if failure != nil {
+		return zen.ErrorBody(failure)
+	}
 	var content any = text
 	if text == "" {
 		content = nil
@@ -395,17 +468,17 @@ func CollectOpenAI(events <-chan zen.Event, model string, toolMap *zen.ToolInjec
 	if reasoning != "" {
 		message["reasoning_content"] = reasoning
 	}
-	finishReason := "stop"
+	if finishReason == "" {
+		finishReason = "stop"
+	}
 	if len(toolCalls) > 0 {
 		message["tool_calls"] = toolCalls
-		finishReason = "tool_calls"
+		if finishReason != "length" && finishReason != "content_filter" {
+			finishReason = "tool_calls"
+		}
 	}
 
-	if usage == nil {
-		usage = &OpenAIUsage{}
-	}
-
-	return map[string]any{
+	result := map[string]any{
 		"id":      "chatcmpl-" + randomHex(12),
 		"object":  "chat.completion",
 		"created": time.Now().Unix(),
@@ -415,6 +488,19 @@ func CollectOpenAI(events <-chan zen.Event, model string, toolMap *zen.ToolInjec
 			"message":       message,
 			"finish_reason": finishReason,
 		}},
-		"usage": usage,
 	}
+	if usage != nil {
+		result["usage"] = usage
+	}
+	return result
+}
+
+func eventFailure(ev zen.Event) *zen.StreamError {
+	if ev.Error != nil {
+		return ev.Error
+	}
+	if ev.StreamInterrupted {
+		return &zen.StreamError{Type: "upstream_error", Message: "Upstream stream interrupted before completion", Status: 502}
+	}
+	return nil
 }

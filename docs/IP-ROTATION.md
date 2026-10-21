@@ -9,47 +9,71 @@ Semua angka di dokumen ini berasal dari pengukuran di mesin ini, bukan perkiraan
 
 ## 1. Masalah yang dipecahkan
 
-Zen free tier membatasi **per IP**, bukan per akun. Satu IP yang sudah kena limit
-akan membalas `429 FreeUsageLimitError` untuk **semua** request, sekalipun
-request-nya valid.
+Zen free tier membatasi **per (IP egress, model)**. Bukti terukur di VPS ini:
+
+- Dari **satu IP egress yang sama**, `beam-free` menjawab `200` sementara
+  `deepseek-v4.1-flash-free` menjawab `429 FreeUsageLimitError`.
+- Mengganti IP egress **tidak** memperbaiki `429` tersebut: `deepseek` tetap
+  `429` di 4 IP berbeda (termasuk IP VPS sendiri), sementara `beam-free`
+  tetap `200` di IP-IP yang sama itu.
+- `429` berarti allowance model itu habis di IP tersebut. `403` berbeda
+  makna: IP itu **ditolak** reputasi, dan IP lain akan memperbaikinya.
 
 Konsekuensinya:
 
 - Ganti API key tidak menolong — limitnya bukan di kredensial.
-- Tunggu saja bisa, tapi tidak dapat diprediksi.
-- Satu-satunya cara yang benar-benar mereset kuota adalah **mengganti IP egress**.
+- **Rotasi IP tidak memperbaiki `429`** yang berbasis model.
+- Untuk `403` (IP diblokir), ganti IP adalah satu-satunya perbaikan.
+- Untuk `429`, satu-satunya perbaikan adalah **model lain yang masih punya
+  allowance** — ini yang dilakukan router lewat fallback model.
 
-Jadi rotasi IP bukan optimasi, melainkan mekanisme inti supaya router tetap bisa
-melayani.
+Karena itu ada dua mekanisme terpisah: rotasi IP untuk `403`, dan fallback
+antar-model untuk `429`. Keduanya diukur, bukan asumsi.
 
 ---
 
-## 2. Dua jalur rotasi
-
-Router punya dua mekanisme, dan **mihomo yang dipakai** karena hanya itu yang
-bisa mengganti IP sungguhan.
-
-| | Cloudflare Worker relay | mihomo (Clash Meta) |
-|---|---|---|
-| Cara ganti IP | deploy Worker baru | pindah node di group |
-| Sifat IP | **bersama** semua pengguna gratis | banyak node, IP berbeda |
-| Hasil untuk Zen | selalu `429` | berhasil |
-| Status | ada, **nonaktif** | **aktif** |
-
-Cloudflare Worker gagal untuk Zen karena IP egress-nya dipakai bersama seluruh
-pengguna gratis Cloudflare dan sudah jenuh. Terukur: relay selalu `429`,
-sementara jalur langsung justru `200`. Relay tetap terpasang sebagai jalur cadangan.
-
-**Urutan pemilihan** (`internal/server/server.go`):
+## 2. Jalur egress dan fallback model
 
 ```
-mihomoStreamZen()  ──► kalau mihomo aktif dan group bisa dipilih
-      │
-      └─ gagal ──► streamZenWithRotation()  ──► relay Cloudflare
+                    Klien
+                      │
+                      ▼
+          POST /v1/chat/completions
+                      │
+                      ▼
+        ┌───────────────────────────────────────┐
+        │  mot-router (Go, :8787)               │
+        │  - adaptasi gate (header + tool)      │
+        │  - ZEN_BASE_URL -> bridge lokal       │
+        └────────────────┬──────────────────────┘
+                         │ loopback
+                         ▼
+        ┌───────────────────────────────────────┐
+        │  opencode-free-bridge (Bun, :20129)   │
+        │  - paritas TLS Bun (17 cipher,        │
+        │    12 extension) -> lolos gate       │
+        │  - HTTPS_PROXY -> :7893                │
+        └────────────────┬──────────────────────┘
+                         │ CONNECT
+                         ▼
+        ┌───────────────────────────────────────┐
+        │  nodebank runtime (:7893, ctrl :9093) │
+        │  - grup MOT                           │
+        │  - node: WARP / datacenter / DIRECT   │
+        └────────────────┬──────────────────────┘
+                         ▼
+                   opencode.ai (Zen)
 ```
 
-Kalau mihomo mengembalikan nama group, berarti jalur mihomo yang dipakai.
-Kalau tidak, router jatuh ke relay.
+Saat upstream menjawab `429`, router membaca snapshot
+`/opt/mot-router/data/model-availability.json` (ditulis oleh
+`mot-warp-rotator.service`) dan melayani request dengan model yang masih
+punya allowance. Snapshot basi (>30 menit) diabaikan supaya fallback tidak
+memindahkan masalah ke model yang juga sudah habis.
+
+Relay Cloudflare Worker tetap terpasang sebagai jalur cadangan, tapi tidak
+lagi menjadi jalur utama: IP egress-nya dipakai bersama seluruh pengguna
+gratis Cloudflare dan selalu `429`.
 
 ---
 
@@ -155,10 +179,22 @@ karena tiga kondisi lain juga diperbaiki oleh node berbeda.
 
 | Kondisi | Pemicu | Kenapa rotasi menolong |
 |---|---|---|
-| Rate limit | `429`, `rate limit`, `quota`, `resource_exhausted` | limit melekat pada IP |
+| Rate limit | `429`, `rate limit`, `quota`, `resource_exhausted` | **hanya kalau allowance-nya melekat pada IP** — lihat catatan di bawah |
 | Blokir region | `403` + `region` / `RegionError` | node di negara lain tidak diblokir |
 | Koneksi putus | status `0`, `unexpected EOF`, `connection reset` | node tertentu yang rusak |
 | Upstream penuh | `503` / `502`, `service_overloaded` | node lain menuju jalur berbeda |
+
+### Catatan penting: `429` tidak selalu per-IP
+
+Terukur di VPS ini: `429` dari `deepseek-v4.1-flash-free` tetap muncul di 4 IP
+egress berbeda, sementara `beam-free` di IP-IP yang sama menjawab `200`. Jadi
+`429` di sini berbasis **(IP, model)**.
+
+Konsekuensi operasional: rotasi IP **tidak** memperbaiki model yang allowance-nya
+habis. Yang memperbaikinya adalah fallback ke model lain (bagian 2). Karena itu
+`mot-warp-rotator.service` sekarang hanya memindahkan egress saat melihat `403`,
+dan sisanya mengukur model mana yang masih tersedia lalu memublikasikannya.
+
 
 ### Aturan yang menjaga klasifikasi tetap sempit
 
@@ -332,6 +368,27 @@ membuat error terlihat membingungkan. Sekarang tiga endpoint dicoba bergantian:
 | Dial timeout | 15 detik | hindari TCP menggantung |
 | TLS handshake timeout | 15 detik | hindari TLS menggantung |
 | Tunggu pindah node | 0 | verifikasi diserahkan ke request ulang |
+| Hindari node kena limit | **5 jam** | jendela limit Zen mengikuti IP dan berlangsung berjam-jam, bukan menit |
+
+### Node yang kena limit tidak dipakai ulang
+
+`429` dari Zen mengikuti **IP egress**, bukan nama node. Karena itu begitu sebuah node
+ditolak, node itu **dikeluarkan** dari kandidat rotasi selama jendela limit — bukan
+sekadar diturunkan prioritasnya.
+
+Perilaku sebelumnya salah dalam tiga hal, dan ketiganya diperbaiki:
+
+| Sebelum | Sekarang |
+|---|---|
+| Penalti 10 menit | 5 jam, sama dengan jendela limit (dapat diubah lewat setting `node_penalty_minutes`) |
+| Bila semua node kena penalti, daftar penuh dipakai lagi sehingga bisa memilih IP yang sama | rotasi **gagal dengan pesan jelas** daripada menyerahkan node yang sudah pasti ditolak |
+| Satu request sukses menghapus penalti | penalti hanya kedaluwarsa karena waktu; limit adalah anggaran token berjam-jam, satu sukses tidak berarti kuota pulih |
+
+Node yang berbagi satu IP juga ikut dilewati: pemetaan node→IP dibaca dari state file ipfarm
+(`/var/lib/ipfarm/state.tsv`, dapat diubah lewat setting `ipfarm_state`).
+
+Node `DIRECT` tetap dipertahankan sebagai tujuan rotasi terakhir — IP host sendiri bisa jadi
+satu-satunya jalur yang masih bekerja.
 
 ### Retry dan rotasi adalah dua hal berbeda
 
@@ -439,6 +496,20 @@ langganan berbayar.
 | `internal/mihomo/mihomo.go` | klien API kontrol, `ProxyClient`, `EgressIP`, `Healthy()`, `egressProbes` |
 | `internal/server/gate.go` | `prepareGate` — mengarahkan prober ke jalur proxy |
 | `internal/gate/gate.go` | prober; rotasi pada `429` dan koneksi putus |
+| `internal/server/model_availability.go` | membaca snapshot ketersediaan model; memilih fallback saat `429` |
+
+### Layanan di VPS
+
+| Unit | Peran |
+|---|---|
+| `opencode-free-bridge.service` | bridge Bun di `:20129`; paritas TLS; egress lewat `:7893` |
+| `mot-warp-rotator.service` | mengukur model yang tersedia, memublikasikan snapshot, memindah egress saat `403` |
+| `mot-nodebank-runtime.service` | runtime proxy nodebank di `:7893` (ctrl `:9093`) |
+
+Snapshot ketersediaan model:
+`/opt/mot-router/data/model-availability.json` — ditulis tiap 2 menit oleh
+`mot-warp-rotator.service`.
+
 
 ### Tes regresi
 
@@ -461,7 +532,36 @@ langganan berbayar.
 
 ---
 
-## 13. Hal yang perlu diingat
+## 13. Model yang sudah ditarik upstream: `muse-spark`
+
+`muse-spark-1.3-contributor-free` sudah dihapus upstream (dulumnya `410
+ModelDeprecated`, sekarang tidak lagi ada di katalog). Yang tersisa di router
+adalah jalur `/responses`, yang **tidak** dilayani `opencode-free-bridge`
+(hanya ada `/chat/completions` dan `/v1/models`), sehingga request itu selalu
+`404`.
+
+Perubahan yang dilakukan:
+
+- `main.go`: default model menjadi `deepseek-v4.1-flash-free`.
+- `internal/gate/client_format.go`: `UsesChatCompletions()` tidak lagi
+  keputusan berdasarkan nama model. Model yang butuh lane Responses kini
+  ditentukan lewat env `ZEN_RESPONSES_MODELS` (daftar id dipisah koma), sama
+  seperti `RESPONSES_MODELS` di bridge. Semua model free yang hidup memakai
+  lane chat.
+- Katalog dashboard, daftar model statis, dan katalog `motgate` tidak lagi
+  memuat `muse`; `motgate` juga memakai `deepseek-v4.1-flash-free` sebagai
+  model katalog.
+- Fixture tes yang sengaja menguji bentuk payload Responses (developer-role
+  `input`, tool datar) kini men-pin lane itu lewat env, bukan lewat nama model
+  yang mirip `muse`.
+
+Efeknya: request `muse-spark-1.3-contributor-free` kini dijawab `404` yang
+jelas (*"Model ... has been retired upstream"*), bukan `404` jalur yang
+membingungkan.
+
+---
+
+## 14. Hal yang perlu diingat
 
 1. **Rotasi mengganti IP, bukan kredensial.** Kalau limitnya per akun, rotasi
    tidak menolong.

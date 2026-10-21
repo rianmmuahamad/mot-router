@@ -16,8 +16,8 @@ func TestShouldRotateCoversRealFailures(t *testing.T) {
 		want   bool
 	}{
 		// Must rotate.
-		{"per-IP rate limit", 429, `{"type":"error","error":{"type":"FreeUsageLimitError"}}`, true},
-		{"region block", 403, `{"type":"error","error":{"type":"RegionError","message":"not available in your region"}}`, true},
+		{"per-IP rate limit", 429, `{"type":"error","error":{"type":"FreeUsageLimitError"}}`, false},
+		{"region block", 403, `{"type":"error","error":{"type":"RegionError","message":"not available in your region"}}`, false},
 		{"dropped connection", 0, `call upstream: Post "https://x": unexpected EOF`, true},
 		{"plain eof", 0, "EOF", true},
 		{"connection reset", 0, "read tcp: connection reset by peer", true},

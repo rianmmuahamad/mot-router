@@ -1,0 +1,33 @@
+[Unit]
+Description=Arbyte private recovery broker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/arbyte-agent/recovery_broker.py
+Restart=on-failure
+RestartSec=5
+RuntimeDirectory=arbyte-repair
+RuntimeDirectoryMode=0750
+UMask=0077
+MemoryAccounting=true
+MemoryMax=96M
+CPUQuota=25%
+TasksMax=32
+LimitNOFILE=256
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/arbyte-repair /var/backups/arbyte-repair /var/lib/arbyte-agent/repair-workspaces /var/lib/arbyte-agent/ops /var/cache/arbyte-build /opt/mot-router /etc/mot-router /etc/caddy /run/arbyte-repair
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+TimeoutStopSec=45
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target

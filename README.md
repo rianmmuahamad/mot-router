@@ -1,3 +1,13 @@
 # Mot Router
 
 Router Go + dashboard: OpenCode Zen free tier, Token Harbor bulk pool + Qwen-only pool, Cline gateway, Quota Tracker.
+
+Normalisasi respons mempertahankan error SSE, alasan selesai (`length`, `content_filter`, dan tool calls), serta laporan usage akhir yang asli. Error di dalam HTTP 200 dicatat sebagai kegagalan request. Usage yang hilang tidak diganti dengan nol; paket token tetap mengikuti mekanisme pemakaian belum terverifikasi. Pengaturan generasi, pilihan tool, dan gambar diteruskan tanpa menambah budget token pengguna secara otomatis.
+
+Katalog model memakai cache bersama selama 10 menit, refresh tunggal untuk request bersamaan, dan cadangan privat `model-catalog-v1.json` di direktori data. Data lama tetap tersedia selama refresh berjalan; kegagalan refresh diberi jeda minimal 30 detik dan menghormati `Retry-After`. Status cache tersedia di `GET /api/models/status`. Secara default sumbernya adalah `/models` API yang dikonfigurasi. `ZEN_CATALOG_URL` dapat menunjuk katalog HTTPS lain yang diizinkan; format daftar OpenAI dan metadata `opencode.models` didukung. Katalog tambahan tidak menerima API key upstream dan tidak mengubah endpoint inferensi, identitas klien, atau izin akses model. Daftar dan limit pada katalog adalah metadata penyedia, bukan hasil pengujian kapasitas model.
+
+Header Adaptation memulihkan penolakan `FreeTierError`/`UpgradeRequired` secara otomatis sebelum respons diteruskan ke klien. Router menguji ulang timestamp session, format ID yang tersedia, serta metadata versi dan layout ID dari sumber resmi OpenCode. Kandidat baru dikonfirmasi dua kali dan profil akhir diuji lagi sebelum dipakai; request klien diterjemahkan ulang beserta mapping tool, lalu dicoba ulang maksimal sekali.
+
+Profil terverifikasi disimpan di database dan dipakai kembali setelah restart. Pemeriksaan otomatis berjalan ketika profil kedaluwarsa atau gagal, dengan satu probe aktif dan cooldown pemulihan satu menit. Pembacaan metadata dibatasi 64 KiB, cache metadata 12 jam, dan cache session 4.096 entri. Router hanya membaca parameter layout ID yang dikenali; algoritme atau format sumber baru yang belum didukung tetap dilaporkan gagal dan membutuhkan pembaruan. Tidak mengunduh atau menjalankan patch kode otomatis.
+
+Tes koneksi di bagian IP Rotation menguji satu node tanpa mengganti pilihan aktif. Pada runtime NodeBank, pengukuran IP keluar dan request Zen dikunci ke node yang sama. Hasil API memisahkan `proxy_ok` dari `zen_ok`, menyebut node/model/IP yang diuji, serta menjelaskan tahap kegagalan. Penolakan akses 403, kuota 429, dan stream terputus tidak disebut proxy mati. HTTP 200 baru dianggap berhasil setelah event akhir diterima; satu tes berhasil tidak menjamin semua model atau kesiapan request berikutnya.

@@ -1,0 +1,122 @@
+{
+  "version": "opencode v2.0.29",
+  "mode": "isolated state; localhost fixture; no real credentials or upstream inference",
+  "exit_code": 0,
+  "requests": [
+    {
+      "path": "/v1/chat/completions",
+      "headers": {
+        "authorization": "<redacted>",
+        "content-type": "application/json",
+        "user-agent": "opencode/latest/2.0.29/cli",
+        "b3": "b7f8195eda292527b28a414a64caba4d-482f15ddd1b21fe4-1-3ced98ae5c4d7dd2",
+        "traceparent": "00-b7f8195eda292527b28a414a64caba4d-482f15ddd1b21fe4-01",
+        "x-opencode-client": "cli",
+        "x-opencode-project": "679deaff69e4b04331a3e3ce64bddc4da4ffb17d",
+        "x-opencode-session": "<present; length=30>",
+        "x-opencode-session-id": "<present; length=30>",
+        "x-session-affinity": "<present; length=30>",
+        "x-session-id": "<present; length=30>",
+        "connection": "keep-alive",
+        "accept": "*/*",
+        "host": "<localhost fixture>",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "content-length": "23116"
+      },
+      "model": "glm-5.3-flash-free",
+      "body_keys": [
+        "max_completion_tokens",
+        "messages",
+        "model",
+        "stream",
+        "stream_options",
+        "tools"
+      ],
+      "stream": true,
+      "max_tokens": null,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "tools": [
+        {
+          "name": "edit",
+          "required": [
+            "path",
+            "oldString",
+            "newString"
+          ]
+        },
+        {
+          "name": "glob",
+          "required": [
+            "pattern"
+          ]
+        },
+        {
+          "name": "grep",
+          "required": [
+            "pattern"
+          ]
+        },
+        {
+          "name": "question",
+          "required": [
+            "questions"
+          ]
+        },
+        {
+          "name": "read",
+          "required": [
+            "path"
+          ]
+        },
+        {
+          "name": "shell",
+          "required": [
+            "command"
+          ]
+        },
+        {
+          "name": "skill",
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "name": "subagent",
+          "required": [
+            "agent",
+            "description",
+            "prompt"
+          ]
+        },
+        {
+          "name": "webfetch",
+          "required": [
+            "url"
+          ]
+        },
+        {
+          "name": "websearch",
+          "required": [
+            "query"
+          ]
+        },
+        {
+          "name": "write",
+          "required": [
+            "path",
+            "content"
+          ]
+        },
+        {
+          "name": "execute",
+          "required": [
+            "code"
+          ]
+        }
+      ]
+    }
+  ]
+}

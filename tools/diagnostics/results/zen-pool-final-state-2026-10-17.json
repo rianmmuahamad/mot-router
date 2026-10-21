@@ -1,0 +1,79 @@
+{
+  "verified_at": "2026-10-16T22:10:21.204937+00:00",
+  "services": {
+    "mot-router": "active",
+    "mot-nodebank-runtime": "active",
+    "mot-nodebank": "active",
+    "guard": "active"
+  },
+  "rss_kib": {
+    "mot-router": 17928,
+    "mot-nodebank-runtime": 26240
+  },
+  "artifacts": {
+    "/opt/mot-router/mot-router": "4800f5837005345d37a791a8dd0d938fe723f182a09e61aec1a7fcbcd4651d20",
+    "/opt/mot-router/nodebank/nodebank-runtime": "fe4747d2af588c91d849b20c4386d066e898166df18af505fd14a0c6d88a1ac8",
+    "/opt/mot-router/releases/zen-pool/source.tar.gz": "770c9c88efe486dd17ca03222372139b3339009f99b5ce7adb63f3af8e22df5e"
+  },
+  "pool": {
+    "audit": [
+      {
+        "model": "muse-spark-1.3-contributor-free",
+        "node": "NB-1efca7092198625302471ef0",
+        "ip": "139.180.146.200",
+        "at": "2026-10-17T06:05:24.088802696+08:00",
+        "result": "rate_limit",
+        "status": 429,
+        "latency_ms": 733,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "identity": "d7c457de467596f8"
+      }
+    ],
+    "available_memory_mib": 1301,
+    "batch": null,
+    "budget_limit": 120,
+    "budget_used": 1,
+    "config": {
+      "enabled": true,
+      "parallelism": 1
+    },
+    "models": {
+      "muse-spark-1.3-contributor-free": {
+        "last_used": "0001-01-01T00:00:00Z",
+        "last_batch": "2026-10-17T06:05:23.348918559+08:00",
+        "cooldown_until": "2026-10-17T08:00:01.088802696+08:00",
+        "reason": "rate_limit"
+      }
+    },
+    "pause_reason": "Menunggu cooldown upstream",
+    "quota_accounting": "operational probes; not customer requests",
+    "ready": [],
+    "target_per_model": 3,
+    "ttl_seconds": 900,
+    "vantage": "vps"
+  },
+  "runtime": {
+    "active_connections": 0,
+    "active_tunnels": 0,
+    "candidate_cap": 5000,
+    "counts": {
+      "failed": 147,
+      "healthy": 566,
+      "pending": 0,
+      "unsupported": 0
+    },
+    "current": "DIRECT",
+    "engine": "nodebank-native",
+    "group": "MOT",
+    "pause_reason": "",
+    "source_error": "",
+    "target_gap": 4446,
+    "total": 713,
+    "tunnel_capacity": 64,
+    "unique_healthy_exit_ips": 554,
+    "vantage": "vps",
+    "zen_verified": false
+  },
+  "backup": "/var/backups/mot-router/zen-pool-20261016T220954Z"
+}

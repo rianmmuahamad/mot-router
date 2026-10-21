@@ -12,13 +12,21 @@ import (
 
 // AnthropicRequest is the subset of the Anthropic Messages API this router uses.
 type AnthropicRequest struct {
-	Model     string             `json:"model"`
-	System    json.RawMessage    `json:"system"`
-	Messages  []AnthropicMessage `json:"messages"`
-	Tools     []AnthropicTool    `json:"tools"`
-	MaxTokens int                `json:"max_tokens"`
-	Stream    bool               `json:"stream"`
-	Thinking  *struct {
+	Model         string             `json:"model"`
+	System        json.RawMessage    `json:"system"`
+	Messages      []AnthropicMessage `json:"messages"`
+	Tools         []AnthropicTool    `json:"tools"`
+	MaxTokens     int                `json:"max_tokens"`
+	Stream        bool               `json:"stream"`
+	Temperature   *float64           `json:"temperature"`
+	TopP          *float64           `json:"top_p"`
+	StopSequences []string           `json:"stop_sequences"`
+	ToolChoice    *struct {
+		Type            string `json:"type"`
+		Name            string `json:"name"`
+		DisableParallel *bool  `json:"disable_parallel_tool_use"`
+	} `json:"tool_choice"`
+	Thinking *struct {
 		Type         string `json:"type"`
 		BudgetTokens int    `json:"budget_tokens"`
 	} `json:"thinking"`
@@ -111,6 +119,8 @@ func AnthropicToZen(req *AnthropicRequest, model string, gate *zen.GateProfile) 
 						"image_url": fmt.Sprintf("data:%s;base64,%s",
 							asString(source["media_type"]), asString(source["data"])),
 					})
+				} else if asString(source["type"]) == "url" {
+					parts = append(parts, map[string]any{"type": "input_image", "image_url": asString(source["url"])})
 				}
 
 			case "tool_use":
@@ -152,7 +162,11 @@ func AnthropicToZen(req *AnthropicRequest, model string, gate *zen.GateProfile) 
 		})
 	}
 	tools, toolMap := zen.PrepareTools(clientTools, gate)
+	zen.NormalizeToolHistory(items, toolMap)
 
+	if req.MaxTokens < 0 {
+		return nil, fmt.Errorf("max_tokens cannot be negative")
+	}
 	maxTokens := req.MaxTokens
 	if maxTokens <= 0 {
 		maxTokens = 32000
@@ -171,6 +185,29 @@ func AnthropicToZen(req *AnthropicRequest, model string, gate *zen.GateProfile) 
 	if instructions := systemText(req.System); instructions != "" {
 		body["instructions"] = instructions
 	}
+	if req.Temperature != nil {
+		body["temperature"] = *req.Temperature
+	}
+	if req.TopP != nil {
+		body["top_p"] = *req.TopP
+	}
+	if req.StopSequences != nil {
+		body["stop"] = req.StopSequences
+	}
+	if req.ToolChoice != nil {
+		switch req.ToolChoice.Type {
+		case "auto", "none":
+			body["tool_choice"] = req.ToolChoice.Type
+		case "any":
+			body["tool_choice"] = "required"
+		case "tool":
+			body["tool_choice"] = map[string]any{"type": "function", "name": strings.ToLower(req.ToolChoice.Name)}
+		}
+		if req.ToolChoice.DisableParallel != nil {
+			body["parallel_tool_calls"] = !*req.ToolChoice.DisableParallel
+		}
+	}
+
 	if req.Thinking != nil && req.Thinking.Type == "enabled" {
 		// Budget is in tokens; upstream takes a named effort. The thresholds
 		// give clients a way to reach every level the upstream accepts,

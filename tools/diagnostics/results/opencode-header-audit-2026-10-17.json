@@ -1,0 +1,135 @@
+{
+  "date": "2026-10-17",
+  "reference_client": "OpenCode 2.0.29 installed on laptop",
+  "findings": [
+    "A successful historical V1 baseline retained the V1 profile and skipped current-client migration.",
+    "V2 tool definitions were approximate diagnostic stubs instead of the installed client definitions.",
+    "V2 lacked the captured project identifier shape and correlated tracing headers.",
+    "Resolving npm latest independently from captured tool definitions could mix client reference versions."
+  ],
+  "changes": [
+    "Verify the current recognized V2 contract before the historical baseline.",
+    "Embed public tool definitions captured from the installed isolated client; preserve caller execution mappings.",
+    "Use native V2 application headers, consistent session aliases, own project ID and own per-request trace IDs.",
+    "Keep the metadata and embedded tool reference at 2.0.29 by default; support validated MOT_OPENCODE_REFERENCE_VERSION."
+  ],
+  "application_headers": {
+    "User-Agent": "opencode/latest/2.0.29/cli",
+    "Accept": "*/*",
+    "Content-Type": "application/json",
+    "x-opencode-client": "cli",
+    "x-opencode-request": "absent for V2",
+    "session_aliases": [
+      "x-opencode-session",
+      "x-opencode-session-id",
+      "x-session-affinity",
+      "x-session-id"
+    ],
+    "x-opencode-project": "own stable 40-hex project identifier",
+    "tracing": [
+      "b3",
+      "traceparent"
+    ],
+    "note": "Session/project/trace values belong to the router, not the captured client. Compression, connection headers, header ordering and TLS are handled by the HTTP transport; byte-identical network fingerprinting is not claimed."
+  },
+  "tests": {
+    "short_race_suite": "passed",
+    "native_final_HTTP_contract": "passed for GLM and DeepSeek",
+    "reference_version_and_metadata_validation": "passed",
+    "native_client_via_VPS": {
+      "model": "glm-5.3-flash-free",
+      "egress": "VPS current NodeBank node via SSH forward",
+      "version": "opencode v2.0.29",
+      "exit_code": 0,
+      "text": "GLM_NATIVE_VPS_OK",
+      "errors": [],
+      "stderr": "",
+      "ok": true
+    },
+    "production_agent_checks": {
+      "user_agent": "opencode/latest/2.0.29/cli",
+      "client_format": "v2",
+      "requests": [
+        {
+          "model": "glm-5.3-flash-free",
+          "text": "GLM_REF_OK",
+          "done": true,
+          "finished": true,
+          "actual_models": [
+            "glm-5.3-flash-free"
+          ],
+          "omp_tools": 11,
+          "status": 200,
+          "usage": {
+            "prompt_tokens": 13587,
+            "completion_tokens": 24,
+            "total_tokens": 13611
+          },
+          "elapsed_ms": 2056,
+          "ok": true
+        },
+        {
+          "model": "deepseek-v4.1-flash-free",
+          "text": "DEEPSEEK_REF_OK",
+          "done": true,
+          "finished": true,
+          "actual_models": [
+            "deepseek-v4.1-flash-free"
+          ],
+          "omp_tools": 11,
+          "status": 200,
+          "usage": {
+            "prompt_tokens": 14227,
+            "completion_tokens": 8,
+            "total_tokens": 14235
+          },
+          "elapsed_ms": 3753,
+          "ok": true
+        }
+      ]
+    }
+  },
+  "deployment": {
+    "gate": {
+      "probe_model": "deepseek-v4.1-flash-free",
+      "source": "probe",
+      "verdict": "ok",
+      "user_agent": "opencode/latest/2.0.29/cli",
+      "verified_version": "2.0.29",
+      "client_format": "v2",
+      "upstream_url": "https://opencode.ai/inference/v1",
+      "required_tools": [
+        "shell",
+        "edit",
+        "glob",
+        "grep",
+        "read",
+        "write",
+        "skill",
+        "subagent",
+        "webfetch",
+        "websearch",
+        "question",
+        "execute"
+      ]
+    },
+    "services": {
+      "mot-router": "active",
+      "mot-nodebank-runtime": "active",
+      "mot-nodebank": "active",
+      "guard": "active"
+    },
+    "artifact_sha256": "3d871d4368d20764dc7917c9a02a1ed1cf370e83c348a6ebe442aa6821188abc"
+  },
+  "source_sha256": "9edd6147384d292c2a63621d8a2621a6dc008009a036cf3b736745594abfa0bd",
+  "backup": "/var/backups/mot-router/native-contract-20261017T082154Z",
+  "intermediate_glm_rejection": {
+    "http_status": 429,
+    "type": "server_error",
+    "message": "Upstream request failed: Endpoint is unavailable.",
+    "interpretation": "inconclusive endpoint availability result; not evidence that the request was invalid or the user quota exhausted"
+  },
+  "model_substitution": false,
+  "credentials_changed": false,
+  "nodebank_runtime_restarted": false
+}

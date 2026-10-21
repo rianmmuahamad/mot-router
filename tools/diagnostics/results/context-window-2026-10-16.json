@@ -1,0 +1,89 @@
+{
+  "measurement": "Mot Router -> OpenCode Zen free IDs",
+  "created_at_utc": "2026-10-16T10:55:33Z",
+  "target_input_tokens": 1005000,
+  "results": [
+    {
+      "model": "deepseek-v4.1-flash-free",
+      "repetitions": 1024,
+      "request_bytes": 2460,
+      "http_status": 200,
+      "response_model": "deepseek-v4.1-flash-free",
+      "elapsed_s": 2.15,
+      "usage": {
+        "prompt_tokens": 1681,
+        "completion_tokens": 87,
+        "total_tokens": 1768
+      },
+      "stream_done": true,
+      "text": "c17a51d7\n96b010db\n059eb0ea",
+      "markers_found": [
+        true,
+        true,
+        true
+      ],
+      "accepted": true
+    },
+    {
+      "model": "deepseek-v4.1-flash-free",
+      "repetitions": 2048,
+      "request_bytes": 4508,
+      "http_status": 200,
+      "response_model": "deepseek-v4.1-flash-free",
+      "elapsed_s": 3.17,
+      "usage": {
+        "prompt_tokens": 2705,
+        "completion_tokens": 57,
+        "total_tokens": 2762
+      },
+      "stream_done": true,
+      "text": "df832b6d\n5d774ded\n363b580b",
+      "markers_found": [
+        true,
+        true,
+        true
+      ],
+      "accepted": true
+    },
+    {
+      "model": "deepseek-v4.1-flash-free",
+      "repetitions": 1004343,
+      "request_bytes": 2009098,
+      "http_status": 200,
+      "response_model": "deepseek-v4.1-flash-free",
+      "elapsed_s": 40.0,
+      "usage": {
+        "prompt_tokens": 1004999,
+        "completion_tokens": 81,
+        "total_tokens": 1005080
+      },
+      "stream_done": true,
+      "text": "e56b916d\nd78a0dae\ncde62630",
+      "markers_found": [
+        true,
+        true,
+        true
+      ],
+      "accepted": true,
+      "estimated_input_tokens": 1005000,
+      "million_input_confirmed": true
+    },
+    {
+      "model": "glm-5.3-flash-free",
+      "repetitions": 1024,
+      "request_bytes": 2454,
+      "http_status": 429,
+      "error": "{\"error\":{\"message\":\"{\\\"error\\\":{\\\"type\\\":\\\"server_error\\\",\\\"message\\\":\\\"Upstream request failed: Endpoint is unavailable.\\\"}}\",\"type\":\"upstream_error\"},\"type\":\"error\"}\n",
+      "elapsed_s": 19.95,
+      "usage": null,
+      "stream_done": false,
+      "text": "",
+      "markers_found": [
+        false,
+        false,
+        false
+      ],
+      "accepted": false
+    }
+  ]
+}

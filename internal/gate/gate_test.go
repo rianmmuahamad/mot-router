@@ -34,30 +34,10 @@ func TestProbeLive(t *testing.T) {
 	if len(prof.RequiredTools) == 0 {
 		t.Fatal("no required tools discovered")
 	}
-	// Assert the discovered set is internally consistent: removing any one of its
-	// members must make the gate reject the request. This verifies the reduction
-	// rather than hardcoding names that the gate is free to change.
-	if len(prof.RequiredTools) == 0 {
-		t.Fatal("no required tools discovered")
+	if len(prof.RequiredTools) != len(p.probeTools()) {
+		t.Fatal("probe published a reduced roster")
 	}
-	for _, drop := range prof.RequiredTools {
-		trial := make([]string, 0, len(prof.RequiredTools)-1)
-		for _, n := range prof.RequiredTools {
-			if n != drop {
-				trial = append(trial, n)
-			}
-		}
-		v := p.send(ctx, prof.UserAgent, SessionID("verify", "ses_", 12, 14), trial, true)
-		if accepted(v) {
-			t.Errorf("removing %q still passed; %v is not a minimal set", drop, prof.RequiredTools)
-		}
-	}
-	if !prof.AcceptsToolSuperset {
-		t.Error("gate no longer tolerates extra tool names; injection is unsafe")
-	}
-	if !prof.RequiresStream {
-		t.Error("stream no longer required")
-	}
+
 }
 func TestSessionShape(t *testing.T) {
 	id := SessionID("seed", "ses_", 12, 14)

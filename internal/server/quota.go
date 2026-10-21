@@ -303,7 +303,7 @@ func (s *Server) handleQuotaStats(w http.ResponseWriter, r *http.Request) {
 	qwenStat := modelStats["qwen3.8-flash:free"]
 	dsStat := modelStats["deepseek-v4.1-flash:free"]
 	mimoStat := modelStats["mimo-v2.6-flash:free"]
-	museStat := modelStats["muse-spark-1.3-contributor-free"]
+	beamStat := modelStats["beam-free"]
 	bunnyStat := modelStats["space-bunny-free"]
 	geminiClineStat := modelStats["cline-free/gemini-3.8-flash"]
 	deepseekClineStat := modelStats["cline-free/deepseek-v4.1-flash"]
@@ -394,16 +394,16 @@ func (s *Server) handleQuotaStats(w http.ResponseWriter, r *http.Request) {
 			ResetInfo:      "Next reset: " + rollingResetDate,
 		},
 		{
-			Model:          "muse-spark-1.3-contributor-free",
-			Name:           "Muse Spark 1.3 (Zen Community)",
+			Model:          "beam-free",
+			Name:           "Beam (Zen Community)",
 			Provider:       "OpenCode Zen",
 			Type:           "community_zen",
 			Banner:         "Unlimited Free (Rotated Egress)",
-			Description:    "OpenCode Zen contributor tier, didukung rotasi otomatis 2.000 IP pool mihomo.",
+			Description:    "OpenCode Zen free tier, didukung rotasi egress otomatis lewat NodeBank.",
 			Status:         "Active · Auto-Heal",
 			UsedPct:        0,
-			TokensConsumed: museStat.tokens,
-			RequestsCount:  museStat.reqs,
+			TokensConsumed: beamStat.tokens,
+			RequestsCount:  beamStat.reqs,
 			ResetInfo:      "Auto-Heal / No Weekly Ceiling",
 		},
 		{

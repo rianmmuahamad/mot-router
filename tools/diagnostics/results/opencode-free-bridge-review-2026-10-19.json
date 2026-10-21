@@ -1,0 +1,166 @@
+{
+  "review_date": "2026-10-19",
+  "repository": "https://github.com/azrinaldi/opencode-free-bridge",
+  "source_commit": "9c001c9c080ccf87c5362b84946293c57d90720c",
+  "source_commit_date": "2026-10-18T09:00:55Z",
+  "package_version": "2.0.2",
+  "method": "Static review of pinned source and current local Mot Router source; no external repository code executed, no installer, live model probes or VPS changes",
+  "source_sha256": {
+    "identity.js": "cc4a0b93ce61d0d62495be7a0963aa36d892b45bb33df6225ffede4069316b86",
+    "server.js": "7309c9b8a7fe6170ee879eb611a61c42f296107b4271338ce8ee5b376359030b",
+    "token-budget.js": "df8cf7db96f7e30cdc7d6a16a17d6a8bd9eefb58f06acbff4064daa63520df30",
+    "transport-fingerprint.js": "d7535f26800ef33bd4ba4e123c0cfc3883121ca1e9c856570aa8a3f591188980",
+    "transport-baseline.json": "33ad5988ff290c5445dbf752d599b59999f160eee9f09a1ba3d5785042bbc1e8",
+    "install.sh": "4a1f3f90fc51e74a2288136bdb91fadafbc9dd3c693c342e2ab3c7b27a5f6161"
+  },
+  "applicability": [
+    {
+      "feature": "Dynamic catalog, endpoint metadata, availability and token limits",
+      "decision": "Adapt metadata management for authorized provider integrations in Go",
+      "bridge": [
+        "identity.js:1149",
+        "identity.js:1191"
+      ],
+      "mot_router": [
+        "internal/zen/zen.go:234",
+        "internal/server/server.go:603",
+        "internal/gate/client_format.go:20"
+      ],
+      "notes": [
+        "Mot Router fetches the model catalog per ListModels call; the routing comment claiming a cache does not match this implementation",
+        "The public model listing appends hardcoded entries and suppresses a named model",
+        "Metadata presence is not proof of permission to use a model or endpoint"
+      ]
+    },
+    {
+      "feature": "Disk cache and single-flight refresh",
+      "decision": "Useful independent reliability improvement",
+      "bridge": [
+        "identity.js:1094",
+        "server.js:332"
+      ],
+      "requirements": [
+        "Bound download size and schema validation",
+        "Atomic cache writes, freshness metadata and last valid snapshot",
+        "One shared refresh for concurrent callers; no refresh storm on repeated errors"
+      ]
+    },
+    {
+      "feature": "SSE error, finish reason and reported usage normalization",
+      "decision": "Highest priority compatibility improvement",
+      "bridge": [
+        "server.js:1089",
+        "server.js:1096",
+        "server.js:2195"
+      ],
+      "mot_router": [
+        "internal/gate/gate.go:322",
+        "internal/zen/chat_completions.go:351",
+        "internal/translate/openai.go:392"
+      ],
+      "notes": [
+        "Current baseline acceptance still tests only HTTP 200",
+        "The existing audit demonstrates in-stream errors becoming empty successful completions",
+        "Preserve length/content_filter/tool_calls and cumulative reported usage; incomplete usage must remain unverified for token plans"
+      ]
+    },
+    {
+      "feature": "Request parameters and multimodal content",
+      "decision": "Adapt protocol translation while preserving the caller contract",
+      "bridge": [
+        "server.js:885"
+      ],
+      "mot_router": [
+        "internal/translate/openai.go:13",
+        "internal/zen/chat_completions.go:23"
+      ],
+      "notes": [
+        "Current router loses several generation parameters and image content on the Chat path",
+        "The bridge itself omits tool_choice none and its Responses branch forwards fewer fields than its Chat branch, so copying the whole converter is insufficient"
+      ]
+    },
+    {
+      "feature": "Retry suppression and diagnostics",
+      "decision": "Use bounded backoff and structured evidence without evading access controls",
+      "bridge": [
+        "server.js:1789",
+        "server.js:1818"
+      ],
+      "notes": [
+        "The current source explicitly acknowledges multiple possible causes for repeated 403; the social post overstates the IP-quota conclusion",
+        "Keep final upstream status and correlation IDs",
+        "Use documented Retry-After where available; repeated access denial is not a reason to rotate sessions or IPs"
+      ]
+    },
+    {
+      "feature": "Reasoning token budget",
+      "decision": "Configurable, model-aware policy; avoid silent budget expansion",
+      "bridge": [
+        "token-budget.js:80"
+      ],
+      "example": {
+        "requested": 128,
+        "effective_before_model_cap": 5120
+      },
+      "notes": [
+        "This raises the allowed output ceiling, not necessarily actual consumption",
+        "Arbyte token plans require respecting caller limits and accurate measured usage",
+        "Account for model output limit and remaining context; a universal extra 4096 is not a guarantee of visible output"
+      ]
+    },
+    {
+      "feature": "Bun TLS fingerprint parity",
+      "decision": "Claim reviewed; not a validated fix for Mot Router 403",
+      "bridge": [
+        "transport-fingerprint.js:132",
+        "transport-fingerprint.js:133",
+        "transport-baseline.json"
+      ],
+      "notes": [
+        "The check compares cipher arrays and extension-type arrays only",
+        "It does not establish full ClientHello equality or upstream authorization",
+        "The baseline names Bun 1.4.2; the package accepts Bun >=1.0.0, so runtime parity cannot be assumed for every allowed version",
+        "CLI identity impersonation to defeat restricted access is outside the supported integration scope"
+      ]
+    },
+    {
+      "feature": "Source-derived CLI identity and tool gate profiles",
+      "decision": "Do not transplant client impersonation as an access-denial workaround",
+      "notes": [
+        "Generic release monitoring and offline compatibility fixtures can be adopted",
+        "The source schema extractor is a purpose-built parser using regex and balanced syntax helpers, not a complete TypeScript compiler",
+        "Unsupported source syntax must be reported; successful extraction alone is not proof of a compatible request or authorized access"
+      ]
+    },
+    {
+      "feature": "Staged installer and auto-update",
+      "decision": "Keep Mot Router deployment mechanism; borrow test-before-release principles",
+      "bridge": [
+        "server.js:82",
+        "server.js:164"
+      ],
+      "mot_router": [
+        "deployments/rotation-fix.sh"
+      ],
+      "notes": [
+        "The runtime updater fetches files from moving main and swaps files with separate rename operations",
+        "Per-file rename is not an atomic release switch; syntax checking does not prove semantic compatibility",
+        "Use a fixed revision, verified artifact, isolated tests, consistent SQLite backup and rollback that preserves later customer transactions"
+      ]
+    }
+  ],
+  "recommended_order": [
+    "Correct baseline and SSE failure reporting",
+    "Preserve request parameters, finish reasons, tool histories and reported usage",
+    "Add validated catalog metadata with bounded disk cache and shared refresh",
+    "Add configurable backoff, correlation evidence and constrained release monitoring"
+  ],
+  "not_validated": [
+    "Live upstream acceptance",
+    "TLS capture on this laptop or VPS",
+    "Runtime memory/CPU overhead of an additional Bun process",
+    "Every upstream test assertion or installer failure case"
+  ],
+  "production_changed": false,
+  "real_model_requests": 0
+}

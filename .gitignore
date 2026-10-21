@@ -1,0 +1,24 @@
+# Build output
+/dist/
+/mot-router
+/motgate
+*.exe
+
+# Local runtime data (databases, logs, caches)
+/data/
+/data-motgate/
+/.cache/
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+# Node
+node_modules/
+
+# Editor/OS
+.DS_Store
+*.swp
+
+# Static design mockups (not part of the router build)
+/previews/

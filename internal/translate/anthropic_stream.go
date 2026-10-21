@@ -24,6 +24,8 @@ type AnthropicStreamWriter struct {
 	thinkingOpen  bool
 	inputTokens   int64
 	outputTokens  int64
+	measured      bool
+	finishReason  string
 	textIndexByID map[string]int
 }
 
@@ -164,6 +166,7 @@ func (s *AnthropicStreamWriter) Tool(id, name, args string) {
 func (s *AnthropicStreamWriter) SetUsage(input, output int64) {
 	s.inputTokens = input
 	s.outputTokens = output
+	s.measured = true
 }
 
 // Finish emits message_delta and message_stop.
@@ -173,19 +176,44 @@ func (s *AnthropicStreamWriter) Finish() {
 	if s.usedTool {
 		stopReason = "tool_use"
 	}
-	s.emit("message_delta", map[string]any{
+	if s.finishReason == "length" {
+		stopReason = "max_tokens"
+	}
+	if s.finishReason == "content_filter" {
+		stopReason = "refusal"
+	}
+	final := map[string]any{
 		"type":  "message_delta",
 		"delta": map[string]any{"stop_reason": stopReason, "stop_sequence": nil},
-		"usage": map[string]any{"output_tokens": s.outputTokens},
-	})
+		// Motgate quota accounting requires a complete input/output pair in
+		// the final usage event. The initial message_start usage is only a
+		// placeholder and cannot be used for billing.
+	}
+	if s.measured {
+		final["usage"] = map[string]any{"input_tokens": s.inputTokens, "output_tokens": s.outputTokens}
+	}
+	s.emit("message_delta", final)
 	s.emit("message_stop", map[string]any{"type": "message_stop"})
 }
 
 // StreamAnthropic translates a Zen event channel into an Anthropic SSE stream.
 func StreamAnthropic(events <-chan zen.Event, w *AnthropicStreamWriter, toolMap *zen.ToolInjection) {
 	w.Start()
+	failed := false
 
 	for ev := range events {
+		if failed {
+			continue
+		}
+		if failure := eventFailure(ev); failure != nil {
+			failed = true
+			w.closeOpen()
+			w.emit("error", map[string]any{"type": "error", "error": failure})
+			continue
+		}
+		if ev.FinishReason != "" {
+			w.finishReason = ev.FinishReason
+		}
 		switch ev.Type {
 		case "response.reasoning_summary_text.delta":
 			itemID := ev.ItemID
@@ -227,14 +255,16 @@ func StreamAnthropic(events <-chan zen.Event, w *AnthropicStreamWriter, toolMap 
 			}
 			w.Tool(callID, name, args)
 
-		case "response.completed":
+		case "response.completed", "response.incomplete":
 			if ev.Response != nil && ev.Response.Usage != nil {
 				w.SetUsage(ev.Response.Usage.InputTokens, ev.Response.Usage.OutputTokens)
 			}
 		}
 	}
 
-	w.Finish()
+	if !failed {
+		w.Finish()
+	}
 }
 
 func lower(s string) string {

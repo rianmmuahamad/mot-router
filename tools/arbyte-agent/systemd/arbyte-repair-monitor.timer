@@ -1,0 +1,12 @@
+[Unit]
+Description=Monitor Arbyte every minute
+
+[Timer]
+OnBootSec=90
+OnUnitActiveSec=60
+AccuracySec=5
+Persistent=true
+Unit=arbyte-repair-monitor.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,29 @@
+[Unit]
+Description=Mot NodeBank laptop proxy candidate bank
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Desktop/mot-router/tools/nodebank
+ExecStart=%h/Desktop/mot-router/tools/nodebank/dist/mot-nodebank --data %h/Desktop/mot-router/tools/nodebank/data serve --worker %h/Desktop/mot-router/tools/nodebank/dist/nodebank-probe
+Restart=on-failure
+RestartSec=10
+UMask=0077
+MemoryAccounting=true
+MemoryHigh=256M
+MemoryMax=384M
+MemorySwapMax=0
+CPUAccounting=true
+CPUQuota=150%
+TasksMax=64
+LimitNOFILE=4096
+Nice=10
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+KillMode=control-group
+TimeoutStopSec=20
+Environment=GOMAXPROCS=2
+Environment=GOMEMLIMIT=96MiB
+
+[Install]
+WantedBy=default.target

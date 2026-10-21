@@ -1,0 +1,17 @@
+[Unit]
+Description=mihomo-farm — proxy pool with many exit IPs for mot-router rotation
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/var/lib/mihomo-farm
+ExecStart=/usr/bin/env mihomo -d /var/lib/mihomo-farm -f /var/lib/mihomo-farm/config.yaml
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

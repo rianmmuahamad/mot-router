@@ -1,0 +1,38 @@
+{
+  "version": "omp/18.2.9",
+  "exit_code": 0,
+  "requests": [
+    {
+      "path": "/v1/chat/completions",
+      "model": "glm-5.3-flash-free",
+      "body_keys": [
+        "max_completion_tokens",
+        "messages",
+        "model",
+        "store",
+        "stream",
+        "stream_options",
+        "tools"
+      ],
+      "stream": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "tool_names": [
+        "read",
+        "bash",
+        "edit",
+        "eval",
+        "glob",
+        "grep",
+        "task",
+        "hub",
+        "todo",
+        "web_search",
+        "write"
+      ]
+    }
+  ],
+  "mode": "isolated state; localhost fixture; no real credentials or upstream inference"
+}

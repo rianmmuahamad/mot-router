@@ -1,0 +1,21 @@
+[Unit]
+Description=Arbyte AI audit with verified native tool calls
+After=arbyte-agent.service
+Requires=arbyte-agent.service
+
+[Service]
+Type=oneshot
+User=arbyte-agent
+Group=arbyte-agent
+ExecStart=/usr/local/bin/arbyte-agent audit
+UMask=0077
+TimeoutStartSec=180
+MemoryMax=32M
+CPUQuota=20%
+Nice=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/arbyte-agent/ops
+PrivateTmp=true
+PrivateDevices=true

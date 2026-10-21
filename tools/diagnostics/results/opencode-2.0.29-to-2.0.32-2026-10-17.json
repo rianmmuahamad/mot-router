@@ -1,0 +1,1628 @@
+{
+  "status": "diverged",
+  "total_commits": 120,
+  "commits": [
+    "sync release versions for v2.0.29 [skip ci]",
+    "feat(session-ui): summarize each turn's changed files (#55064)",
+    "docs(www): remove Ling free models from Console models (#55410)",
+    "feat(app): restore option arrow session tab navigation (#54277)",
+    "docs: add mise install method (#55415)",
+    "fix(core): substitute empty for missing config file references (#55388)",
+    "feat(tui): render diffs in plugin panel slots (#47152)",
+    "fix(tui): use the action disabled token for inactive key hints (#55452)",
+    "docs: document top-level policies in Console API response (#55461)",
+    "fix(vscode): use the sst/opencode repository URL for Marketplace publishing (#55463)",
+    "fix(tui): put the diff side panel behind an experiment (#55456)",
+    "feat(console): enrich Salesforce leads with Console account status (#54387)",
+    "docs(console): list Cat Jam Free unavailable regions (#55466)",
+    "fix(core): treat empty configured provider and model names as omitted (#55465)",
+    "fix(tui): tidy docked diff panel spacing (#55467)",
+    "docs(console): correct Cat Jam Free privacy on Go page (#55499)",
+    "fix(console): keep API route handlers out of route modules (#55541)",
+    "fix(core): load configured instructions (#55539)",
+    "fix(cli): default the Windows service to port 45278 (#55547)",
+    "docs(plugin): document permission assert and fix session rules example (#55526)",
+    "fix(schema): publish config schema that accepts V1 and V2 shapes (#55524)",
+    "fix(app): keep project settings open when the project folder is missing (#55553)",
+    "test(core): run MCP lifecycle tests against an in-process server (#55568)",
+    "fix(mcp): pass tool input as permission metadata (#51062)",
+    "fix(www): serve install script from dev branch (#55587)",
+    "fix(cli): poll install download progress instead of tracing bytes (#55586)",
+    "fix(session-ui): show webfetch URL while the fetch runs (#55590)",
+    "feat(app): show voice delegations from the iOS app as Voice messages (#54426)",
+    "fix(core): skip codemode query for MCP servers that reject it (#55618)",
+    "chore(core): redact params in database query errors (#55621)",
+    "fix(core): advertise the spec-shaped MCP elicitation capability (#53196)",
+    "fix(core): skip MCP list calls for unadvertised capabilities (#55474)",
+    "fix(core): treat *.localhost as loopback for MCP OAuth token endpoints (#55627)",
+    "chore: update nix node_modules hashes",
+    "fix(core): fit compaction output limit to the request actually sent (#55613)",
+    "fix(ai): accept null Responses function call namespace (#55631)",
+    "docs(console): add DeepSeek V4.1 Flash Free (#55636)",
+    "fix(desktop): open PowerShell in the project directory on Windows (#55710)",
+    "docs(console): add Nemotron 3.5 Super VL Free (#55747)",
+    "refactor(tui): add dialog inset constants (#55498)",
+    "refactor(tui): add shared DialogHeader (#55501)",
+    "refactor(tui): use one side padding for all dialogs (#55505)",
+    "refactor(tui): add shared DialogFooter with label-first actions (#55513)",
+    "fix(console): link Zen and Go docs to V2 console pages (#55773)",
+    "refactor(tui): split DialogSelect row rendering into components (#55517)",
+    "feat(tui): responsive diff viewer layouts (#55574)",
+    "refactor(tui): add shared dialog layout with one vertical rhythm (#55519)",
+    "refactor(tui): inline select row gutter and derive detail width (#55740)",
+    "fix(core): initialize MCP session for TinyFish web search (#54730)",
+    "feat(tui): open the diff side panel by default (#55780)",
+    "refactor(tui): move remaining dialogs onto DialogLayout (#55523)",
+    "chore(tui): format dialog files with prettier (#55531)",
+    "refactor(tui): replace dialog inset flag with a cell count (#55582)",
+    "refactor(tui): build prompt-style dialogs on DialogPrompt (#55518)",
+    "fix(ai): use protocol-specific inference endpoints (#55680)",
+    "refactor(tui): build prompt and integration views on DialogLayout (#55742)",
+    "fix(tui): show remaining dialog hints label-first (#55745)",
+    "fix(tui): keep fork pending view at the list inset (#55746)",
+    "fix(tui): mount each dialog once so /fork shows its pending view (#55751)",
+    "ci: restore daily models.dev snapshot refresh on dev (#55783)",
+    "chore: retire session sharing backend (#55716)",
+    "chore(core): refresh bundled models.dev snapshot",
+    "fix(infra): hand share domain over from teams worker (#55784)",
+    "fix(core): honor OPENCODE_DISABLE_CLAUDE_CODE (#55774)",
+    "docs: document MCP CIMD client registration (#55796)",
+    "sync release versions for v2.0.30 [skip ci]",
+    "ci: refresh models.dev snapshot every 12 hours (#55841)",
+    "fix(app): dropzone blur adjustment to avoid idle backdrop cost (#55418)",
+    "fix(core): load and spell reasoning for every native provider package (#55789)",
+    "fix(tui): stop repeated review from reopening the last diff file (#55845)",
+    "fix(core): accept numeric MCP timeouts (#55851)",
+    "docs(go): launch Step 5 Preview in Go (#55749)",
+    "fix(core): default to big-pickle when only free OpenCode models are available (#55852)",
+    "fix(tui): say why /editor did nothing when no editor is set (#55872)",
+    "fix(core): seed configured limits before model transforms (#55778)",
+    "chore(ci): speed up and stabilize the test workflow (#55866)",
+    "fix(util): hide plugin Git console windows on Windows (#55475)",
+    "chore: update nix node_modules hashes",
+    "chore(release): publish the desktop app from beta (#55878)",
+    "fix(tui): roll the compact form over to M at the rounding boundary (#55871)",
+    "fix(app): keep the review pane steady when the side terminal toggles (#55879)",
+    "fix(app): fade long file names at the edge of the file tree (#55889)",
+    "chore(core): refresh bundled models.dev snapshot",
+    "docs: document external_directory allow default (#55885)",
+    "fix(core): omit compaction replay context from sanitized exports (#55592)",
+    "fix(session-ui): slide the tool group count when it changes (#55617)",
+    "fix(tui): transparent background for embedded terminal panel (#55396)",
+    "fix(ai): honor Anthropic cache format on Bedrock Converse (#55942)",
+    "fix(cli): load saved environment when starting managed services (#50907)",
+    "fix(core): hide newer Bedrock bare IDs that require inference profiles (#54486)",
+    "test(cli): simplify service env test (#55952)",
+    "fix(core): escape env config values that break parsing (#55915)",
+    "fix(core): prioritize preferred free OpenCode models when signed out (#55972)",
+    "fix(core): treat unreadable config file references as empty (#55959)",
+    "fix(core): respell variants when config changes a catalog model's package (#55962)",
+    "docs(console): add LL Alpha Free (#55969)",
+    "fix(update): cache rollout fallback reads (#55205)",
+    "docs(console): add GLM-5.3-Flash Free (#55975)",
+    "docs(go): remove retired Go models (#55761)",
+    "feat(tui): add new designs experiment (#55818)",
+    "feat(tui): add opencode2 theme and text.faint token (#55798)",
+    "refactor(tui): build DialogSelect on DialogLayout (#55799)",
+    "feat(tui): new dialog designs behind new designs experiment (#55810)",
+    "feat(core): read model reasoning from config (#55853)",
+    "feat(tui): make /copy copy last assistant message (#56053)",
+    "fix(tui): copy compaction summary as last message (#56055)",
+    "chore(core): refresh bundled models.dev snapshot",
+    "sync release versions for v2.0.31 [skip ci]",
+    "docs(console): rename Cat Jam Free to Beam Free (#55993)",
+    "fix(cli): don't crash auth login when no browser opener is available (#56082)",
+    "fix(stats): merge Cat Jam usage into Reflection Beam (#56025)",
+    "chore(release): drop the separate opencode-beta release repo (#56083)",
+    "fix(ci): run app e2e on dev and every package's unit tests (#56117)",
+    "fix(update): accept publish tokens only from dev and beta (#56085)",
+    "fix(ci): include PrivacyUrl in WinGet locale manifests (#56123)",
+    "test: fix Windows flakes in cli standalone, Storybook and snapshot tests (#56181)",
+    "fix(core): retry snapshot capture when concurrent Git writes collide on Windows (#56190)",
+    "fix(ai): retry Gemini MALFORMED_RESPONSE finishes (#56232)",
+    "feat(server): add experimental voice session endpoint (#55951)",
+    "release: v2.0.32"
+  ],
+  "files": [
+    {
+      "filename": ".github/actions/setup-bun/action.yml",
+      "status": "modified",
+      "changes": 15
+    },
+    {
+      "filename": ".github/workflows/models-snapshot.yml",
+      "status": "added",
+      "changes": 62
+    },
+    {
+      "filename": ".github/workflows/nix-hashes.yml",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": ".github/workflows/publish.yml",
+      "status": "modified",
+      "changes": 18
+    },
+    {
+      "filename": ".github/workflows/test.yml",
+      "status": "modified",
+      "changes": 149
+    },
+    {
+      "filename": ".opencode/skills/app-e2e-tests/SKILL.md",
+      "status": "added",
+      "changes": 138
+    },
+    {
+      "filename": ".opencode/skills/component-tests/SKILL.md",
+      "status": "added",
+      "changes": 117
+    },
+    {
+      "filename": ".opencode/skills/tui-tests/SKILL.md",
+      "status": "added",
+      "changes": 82
+    },
+    {
+      "filename": ".opencode/skills/unit-tests/SKILL.md",
+      "status": "added",
+      "changes": 140
+    },
+    {
+      "filename": "AGENTS.md",
+      "status": "modified",
+      "changes": 1
+    },
+    {
+      "filename": "CHANGELOG.md",
+      "status": "modified",
+      "changes": 127
+    },
+    {
+      "filename": "bun.lock",
+      "status": "modified",
+      "changes": 193
+    },
+    {
+      "filename": "infra/console.ts",
+      "status": "modified",
+      "changes": 6
+    },
+    {
+      "filename": "infra/enterprise.ts",
+      "status": "removed",
+      "changes": 18
+    },
+    {
+      "filename": "infra/secret.ts",
+      "status": "modified",
+      "changes": 3
+    },
+    {
+      "filename": "infra/share.ts",
+      "status": "added",
+      "changes": 20
+    },
+    {
+      "filename": "install",
+      "status": "modified",
+      "changes": 69
+    },
+    {
+      "filename": "nix/hashes.json",
+      "status": "modified",
+      "changes": 6
+    },
+    {
+      "filename": "package.json",
+      "status": "modified",
+      "changes": 5
+    },
+    {
+      "filename": "packages/ai/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/ai/src/experimental.ts",
+      "status": "modified",
+      "changes": 7
+    },
+    {
+      "filename": "packages/ai/src/experimental/realtime.ts",
+      "status": "added",
+      "changes": 150
+    },
+    {
+      "filename": "packages/ai/src/protocols/bedrock-converse.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/ai/src/protocols/gemini.ts",
+      "status": "modified",
+      "changes": 13
+    },
+    {
+      "filename": "packages/ai/src/protocols/open-responses.ts",
+      "status": "modified",
+      "changes": 6
+    },
+    {
+      "filename": "packages/ai/src/protocols/utils/bedrock-cache.ts",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/ai/src/providers/opencode.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/ai/test/fixtures/recordings/opencode-evaluation/evaluates-choice-score-and-boolean-questions.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/ai/test/provider/bedrock-converse-cache.test.ts",
+      "status": "modified",
+      "changes": 51
+    },
+    {
+      "filename": "packages/ai/test/provider/gemini.test.ts",
+      "status": "modified",
+      "changes": 3
+    },
+    {
+      "filename": "packages/ai/test/provider/openai-compatible-responses.test.ts",
+      "status": "modified",
+      "changes": 21
+    },
+    {
+      "filename": "packages/ai/test/realtime.test.ts",
+      "status": "added",
+      "changes": 127
+    },
+    {
+      "filename": "packages/app/README.md",
+      "status": "modified",
+      "changes": 23
+    },
+    {
+      "filename": "packages/app/component-tests/composer.spec.ts",
+      "status": "modified",
+      "changes": 59
+    },
+    {
+      "filename": "packages/app/e2e/regression/command-palette.spec.ts",
+      "status": "modified",
+      "changes": 9
+    },
+    {
+      "filename": "packages/app/e2e/regression/review.spec.ts",
+      "status": "modified",
+      "changes": 6
+    },
+    {
+      "filename": "packages/app/e2e/regression/session-summary.spec.ts",
+      "status": "modified",
+      "changes": 5
+    },
+    {
+      "filename": "packages/app/e2e/regression/settings.spec.ts",
+      "status": "modified",
+      "changes": 37
+    },
+    {
+      "filename": "packages/app/e2e/regression/side-panels.spec.ts",
+      "status": "modified",
+      "changes": 62
+    },
+    {
+      "filename": "packages/app/e2e/regression/subagent-child-navigation.spec.ts",
+      "status": "modified",
+      "changes": 6
+    },
+    {
+      "filename": "packages/app/e2e/regression/tabs.spec.ts",
+      "status": "modified",
+      "changes": 34
+    },
+    {
+      "filename": "packages/app/e2e/regression/timeline-cache.spec.ts",
+      "status": "modified",
+      "changes": 46
+    },
+    {
+      "filename": "packages/app/e2e/regression/whats-new.spec.ts",
+      "status": "modified",
+      "changes": 19
+    },
+    {
+      "filename": "packages/app/e2e/utils/mock-server.ts",
+      "status": "modified",
+      "changes": 15
+    },
+    {
+      "filename": "packages/app/e2e/utils/serve.ts",
+      "status": "added",
+      "changes": 65
+    },
+    {
+      "filename": "packages/app/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/app/playwright.config.ts",
+      "status": "modified",
+      "changes": 23
+    },
+    {
+      "filename": "packages/app/src/composer/dropzone.tsx",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/app/src/index.css",
+      "status": "modified",
+      "changes": 14
+    },
+    {
+      "filename": "packages/app/src/new-session/route.tsx",
+      "status": "modified",
+      "changes": 31
+    },
+    {
+      "filename": "packages/app/src/runtime/extension/side-region.tsx",
+      "status": "modified",
+      "changes": 7
+    },
+    {
+      "filename": "packages/app/src/runtime/i18n/en.ts",
+      "status": "modified",
+      "changes": 8
+    },
+    {
+      "filename": "packages/app/src/session/screen-layout.ts",
+      "status": "modified",
+      "changes": 15
+    },
+    {
+      "filename": "packages/app/src/session/screen.tsx",
+      "status": "modified",
+      "changes": 16
+    },
+    {
+      "filename": "packages/app/src/session/timeline/controller.tsx",
+      "status": "modified",
+      "changes": 1
+    },
+    {
+      "filename": "packages/app/src/session/timeline/message-timeline.tsx",
+      "status": "modified",
+      "changes": 5
+    },
+    {
+      "filename": "packages/app/src/session/timeline/observe-element-offset.test.ts",
+      "status": "modified",
+      "changes": 152
+    },
+    {
+      "filename": "packages/app/src/session/timeline/observe-element-offset.ts",
+      "status": "modified",
+      "changes": 8
+    },
+    {
+      "filename": "packages/app/src/session/timeline/turn-diffs.test.ts",
+      "status": "added",
+      "changes": 32
+    },
+    {
+      "filename": "packages/app/src/session/timeline/turn-diffs.ts",
+      "status": "added",
+      "changes": 30
+    },
+    {
+      "filename": "packages/app/src/session/timeline/voice-delegation.test.ts",
+      "status": "added",
+      "changes": 63
+    },
+    {
+      "filename": "packages/app/src/session/timeline/voice-delegation.ts",
+      "status": "added",
+      "changes": 33
+    },
+    {
+      "filename": "packages/app/src/settings/general/general.tsx",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/app/src/settings/model.test.ts",
+      "status": "modified",
+      "changes": 1
+    },
+    {
+      "filename": "packages/app/src/settings/model.tsx",
+      "status": "modified",
+      "changes": 6
+    },
+    {
+      "filename": "packages/app/src/settings/navigation.tsx",
+      "status": "modified",
+      "changes": 16
+    },
+    {
+      "filename": "packages/app/src/settings/providers/extensions.tsx",
+      "status": "modified",
+      "changes": 13
+    },
+    {
+      "filename": "packages/app/src/settings/workspaces/project-extensions.tsx",
+      "status": "modified",
+      "changes": 16
+    },
+    {
+      "filename": "packages/app/src/settings/workspaces/project-folder-missing.tsx",
+      "status": "added",
+      "changes": 29
+    },
+    {
+      "filename": "packages/app/src/settings/workspaces/project.css",
+      "status": "modified",
+      "changes": 37
+    },
+    {
+      "filename": "packages/app/src/settings/workspaces/project.tsx",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/app/src/shell/routes/session-ui-provider.tsx",
+      "status": "modified",
+      "changes": 24
+    },
+    {
+      "filename": "packages/app/src/shell/titlebar/tab-nav.tsx",
+      "status": "modified",
+      "changes": 13
+    },
+    {
+      "filename": "packages/app/src/shell/titlebar/tab-order.test.ts",
+      "status": "modified",
+      "changes": 13
+    },
+    {
+      "filename": "packages/app/src/shell/titlebar/tab-order.ts",
+      "status": "modified",
+      "changes": 15
+    },
+    {
+      "filename": "packages/app/src/shell/titlebar/tab-strip.tsx",
+      "status": "modified",
+      "changes": 52
+    },
+    {
+      "filename": "packages/app/test-browser/playwright-config.test.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/cli/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/cli/src/commands/handlers/mcp/auth.ts",
+      "status": "modified",
+      "changes": 8
+    },
+    {
+      "filename": "packages/cli/src/server-process.ts",
+      "status": "modified",
+      "changes": 7
+    },
+    {
+      "filename": "packages/cli/src/services/service-config.ts",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/cli/src/ui/prompt.ts",
+      "status": "modified",
+      "changes": 3
+    },
+    {
+      "filename": "packages/cli/test/prompt-open-url.test.ts",
+      "status": "added",
+      "changes": 8
+    },
+    {
+      "filename": "packages/cli/test/service.test.ts",
+      "status": "modified",
+      "changes": 84
+    },
+    {
+      "filename": "packages/cli/test/standalone.test.ts",
+      "status": "modified",
+      "changes": 9
+    },
+    {
+      "filename": "packages/client/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/client/src/effect/api/api.ts",
+      "status": "modified",
+      "changes": 19
+    },
+    {
+      "filename": "packages/client/src/effect/generated/client.ts",
+      "status": "modified",
+      "changes": 15
+    },
+    {
+      "filename": "packages/client/src/promise/generated/client.ts",
+      "status": "modified",
+      "changes": 16
+    },
+    {
+      "filename": "packages/client/src/promise/generated/types.ts",
+      "status": "modified",
+      "changes": 50
+    },
+    {
+      "filename": "packages/client/test/effect.test.ts",
+      "status": "modified",
+      "changes": 5
+    },
+    {
+      "filename": "packages/client/test/fixture/service-fixture.ts",
+      "status": "modified",
+      "changes": 25
+    },
+    {
+      "filename": "packages/client/test/import-boundaries.test.ts",
+      "status": "modified",
+      "changes": 1
+    },
+    {
+      "filename": "packages/client/test/promise-service.test.ts",
+      "status": "modified",
+      "changes": 85
+    },
+    {
+      "filename": "packages/client/test/promise.test.ts",
+      "status": "modified",
+      "changes": 14
+    },
+    {
+      "filename": "packages/client/test/service-reconnect.test.ts",
+      "status": "modified",
+      "changes": 10
+    },
+    {
+      "filename": "packages/client/test/service.test.ts",
+      "status": "modified",
+      "changes": 83
+    },
+    {
+      "filename": "packages/codemode/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/console/app/package.json",
+      "status": "modified",
+      "changes": 8
+    },
+    {
+      "filename": "packages/console/app/script/dev-enterprise.ts",
+      "status": "added",
+      "changes": 99
+    },
+    {
+      "filename": "packages/console/app/script/salesforce-cli-response.test.ts",
+      "status": "added",
+      "changes": 40
+    },
+    {
+      "filename": "packages/console/app/script/salesforce-cli-response.ts",
+      "status": "added",
+      "changes": 24
+    },
+    {
+      "filename": "packages/console/app/src/component/go-models.ts",
+      "status": "modified",
+      "changes": 21
+    },
+    {
+      "filename": "packages/console/app/src/i18n/ar.ts",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/console/app/src/i18n/br.ts",
+      "status": "modified",
+      "changes": 13
+    },
+    {
+      "filename": "packages/console/app/src/i18n/da.ts",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/console/app/src/i18n/de.ts",
+      "status": "modified",
+      "changes": 13
+    },
+    {
+      "filename": "packages/console/app/src/i18n/en.ts",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/console/app/src/i18n/es.ts",
+      "status": "modified",
+      "changes": 12
+    },
+    {
+      "filename": "packages/console/app/src/i18n/fr.ts",
+      "status": "modified",
+      "changes": 13
+    },
+    {
+      "filename": "packages/console/app/src/i18n/it.ts",
+      "status": "modified",
+      "changes": 12
+    },
+    {
+      "filename": "packages/console/app/src/i18n/ja.ts",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/console/app/src/i18n/ko.ts",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/console/app/src/i18n/no.ts",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/console/app/src/i18n/pl.ts",
+      "status": "modified",
+      "changes": 13
+    },
+    {
+      "filename": "packages/console/app/src/i18n/ru.ts",
+      "status": "modified",
+      "changes": 12
+    },
+    {
+      "filename": "packages/console/app/src/i18n/th.ts",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/console/app/src/i18n/tr.ts",
+      "status": "modified",
+      "changes": 13
+    },
+    {
+      "filename": "packages/console/app/src/i18n/uk.ts",
+      "status": "modified",
+      "changes": 13
+    },
+    {
+      "filename": "packages/console/app/src/i18n/zh.ts",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/console/app/src/i18n/zht.ts",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/console/app/src/lib/console-account.ts",
+      "status": "added",
+      "changes": 31
+    },
+    {
+      "filename": "packages/console/app/src/lib/console-signup.test.ts",
+      "status": "added",
+      "changes": 159
+    },
+    {
+      "filename": "packages/console/app/src/lib/console-signup.ts",
+      "status": "added",
+      "changes": 19
+    },
+    {
+      "filename": "packages/console/app/src/lib/enterprise.ts",
+      "status": "added",
+      "changes": 156
+    },
+    {
+      "filename": "packages/console/app/src/lib/language.ts",
+      "status": "modified",
+      "changes": 28
+    },
+    {
+      "filename": "packages/console/app/src/lib/salesforce.test.ts",
+      "status": "added",
+      "changes": 112
+    },
+    {
+      "filename": "packages/console/app/src/lib/salesforce.ts",
+      "status": "modified",
+      "changes": 143
+    },
+    {
+      "filename": "packages/console/app/src/routes/api/console-signup.ts",
+      "status": "added",
+      "changes": 8
+    },
+    {
+      "filename": "packages/console/app/src/routes/api/enterprise.ts",
+      "status": "modified",
+      "changes": 137
+    },
+    {
+      "filename": "packages/console/app/src/routes/download/index.tsx",
+      "status": "modified",
+      "changes": 4
+    },
+    {
+      "filename": "packages/console/app/src/routes/go/index.tsx",
+      "status": "modified",
+      "changes": 22
+    },
+    {
+      "filename": "packages/console/app/src/routes/index.tsx",
+      "status": "modified",
+      "changes": 4
+    },
+    {
+      "filename": "packages/console/app/src/routes/temp.tsx",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/console/app/src/routes/zen/index.tsx",
+      "status": "modified",
+      "changes": 10
+    },
+    {
+      "filename": "packages/console/app/test/consoleMarketing.test.ts",
+      "status": "modified",
+      "changes": 3
+    },
+    {
+      "filename": "packages/console/function/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/core/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/core/script/test.ts",
+      "status": "modified",
+      "changes": 3
+    },
+    {
+      "filename": "packages/core/src/aisdk-native.ts",
+      "status": "modified",
+      "changes": 37
+    },
+    {
+      "filename": "packages/core/src/config.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/core/src/config/discovery.ts",
+      "status": "modified",
+      "changes": 15
+    },
+    {
+      "filename": "packages/core/src/config/normalize.ts",
+      "status": "modified",
+      "changes": 27
+    },
+    {
+      "filename": "packages/core/src/config/plugin/instruction.ts",
+      "status": "modified",
+      "changes": 126
+    },
+    {
+      "filename": "packages/core/src/config/plugin/provider.ts",
+      "status": "modified",
+      "changes": 33
+    },
+    {
+      "filename": "packages/core/src/config/variable.ts",
+      "status": "modified",
+      "changes": 47
+    },
+    {
+      "filename": "packages/core/src/database/drizzle/sqlite-core/effect/session.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/core/src/git.ts",
+      "status": "modified",
+      "changes": 32
+    },
+    {
+      "filename": "packages/core/src/instance.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/core/src/instruction-discovery.ts",
+      "status": "modified",
+      "changes": 12
+    },
+    {
+      "filename": "packages/core/src/mcp/client.ts",
+      "status": "modified",
+      "changes": 44
+    },
+    {
+      "filename": "packages/core/src/model.ts",
+      "status": "modified",
+      "changes": 21
+    },
+    {
+      "filename": "packages/core/src/models-dev.ts",
+      "status": "modified",
+      "changes": 1
+    },
+    {
+      "filename": "packages/core/src/models-dev/snapshot.txt",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/core/src/plugin/models-dev.ts",
+      "status": "modified",
+      "changes": 8
+    },
+    {
+      "filename": "packages/core/src/plugin/provider/opencode.ts",
+      "status": "modified",
+      "changes": 12
+    },
+    {
+      "filename": "packages/core/src/plugin/skill/opencode.md",
+      "status": "modified",
+      "changes": 7
+    },
+    {
+      "filename": "packages/core/src/plugin/websearch/tinyfish.ts",
+      "status": "modified",
+      "changes": 80
+    },
+    {
+      "filename": "packages/core/src/provider.ts",
+      "status": "modified",
+      "changes": 41
+    },
+    {
+      "filename": "packages/core/src/session/compaction.ts",
+      "status": "modified",
+      "changes": 29
+    },
+    {
+      "filename": "packages/core/src/session/model-request.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/core/src/session/transfer.ts",
+      "status": "modified",
+      "changes": 5
+    },
+    {
+      "filename": "packages/core/src/tool/mcp.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/core/src/v1/config/migrate.ts",
+      "status": "modified",
+      "changes": 9
+    },
+    {
+      "filename": "packages/core/src/variant.ts",
+      "status": "modified",
+      "changes": 71
+    },
+    {
+      "filename": "packages/core/src/voice.ts",
+      "status": "added",
+      "changes": 88
+    },
+    {
+      "filename": "packages/core/test/aisdk-native.test.ts",
+      "status": "modified",
+      "changes": 30
+    },
+    {
+      "filename": "packages/core/test/browser-idle.test.ts",
+      "status": "modified",
+      "changes": 24
+    },
+    {
+      "filename": "packages/core/test/catalog.test.ts",
+      "status": "modified",
+      "changes": 50
+    },
+    {
+      "filename": "packages/core/test/config/config.test.ts",
+      "status": "modified",
+      "changes": 82
+    },
+    {
+      "filename": "packages/core/test/config/normalization.test.ts",
+      "status": "modified",
+      "changes": 29
+    },
+    {
+      "filename": "packages/core/test/config/provider.test.ts",
+      "status": "modified",
+      "changes": 148
+    },
+    {
+      "filename": "packages/core/test/config/reload.test.ts",
+      "status": "modified",
+      "changes": 4
+    },
+    {
+      "filename": "packages/core/test/database-drizzle.test.ts",
+      "status": "modified",
+      "changes": 4
+    },
+    {
+      "filename": "packages/core/test/filesystem/watcher.test.ts",
+      "status": "modified",
+      "changes": 8
+    },
+    {
+      "filename": "packages/core/test/fixture/git.ts",
+      "status": "modified",
+      "changes": 26
+    },
+    {
+      "filename": "packages/core/test/instruction-discovery.test.ts",
+      "status": "modified",
+      "changes": 171
+    },
+    {
+      "filename": "packages/core/test/integration.test.ts",
+      "status": "modified",
+      "changes": 14
+    },
+    {
+      "filename": "packages/core/test/location-layer.test.ts",
+      "status": "modified",
+      "changes": 36
+    },
+    {
+      "filename": "packages/core/test/mcp.test.ts",
+      "status": "modified",
+      "changes": 119
+    },
+    {
+      "filename": "packages/core/test/models.test.ts",
+      "status": "modified",
+      "changes": 4
+    },
+    {
+      "filename": "packages/core/test/plugin/provider-opencode.test.ts",
+      "status": "modified",
+      "changes": 52
+    },
+    {
+      "filename": "packages/core/test/plugin/supervisor-reload.test.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/core/test/plugin/websearch-fixture.ts",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/core/test/plugin/websearch.test.ts",
+      "status": "modified",
+      "changes": 18
+    },
+    {
+      "filename": "packages/core/test/process/process.test.ts",
+      "status": "modified",
+      "changes": 50
+    },
+    {
+      "filename": "packages/core/test/project.test.ts",
+      "status": "modified",
+      "changes": 7
+    },
+    {
+      "filename": "packages/core/test/provider.test.ts",
+      "status": "modified",
+      "changes": 36
+    },
+    {
+      "filename": "packages/core/test/repository-cache.test.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/core/test/session-activation.test.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/core/test/session-compaction.test.ts",
+      "status": "modified",
+      "changes": 40
+    },
+    {
+      "filename": "packages/core/test/session-create.test.ts",
+      "status": "modified",
+      "changes": 11
+    },
+    {
+      "filename": "packages/core/test/session-move.test.ts",
+      "status": "modified",
+      "changes": 10
+    },
+    {
+      "filename": "packages/core/test/session-shell.test.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/core/test/snapshot.test.ts",
+      "status": "modified",
+      "changes": 20
+    },
+    {
+      "filename": "packages/core/test/variant.test.ts",
+      "status": "modified",
+      "changes": 60
+    },
+    {
+      "filename": "packages/core/test/vcs.test.ts",
+      "status": "modified",
+      "changes": 13
+    },
+    {
+      "filename": "packages/core/test/voice.test.ts",
+      "status": "added",
+      "changes": 107
+    },
+    {
+      "filename": "packages/desktop/README.md",
+      "status": "modified",
+      "changes": 7
+    },
+    {
+      "filename": "packages/desktop/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/desktop/scripts/finalize-latest-json.ts",
+      "status": "removed",
+      "changes": 270
+    },
+    {
+      "filename": "packages/desktop/scripts/finalize-latest-yml.ts",
+      "status": "removed",
+      "changes": 142
+    },
+    {
+      "filename": "packages/desktop/src/main/files/index.ts",
+      "status": "modified",
+      "changes": 22
+    },
+    {
+      "filename": "packages/enterprise/.gitignore",
+      "status": "removed",
+      "changes": 26
+    },
+    {
+      "filename": "packages/enterprise/README.md",
+      "status": "removed",
+      "changes": 32
+    },
+    {
+      "filename": "packages/enterprise/package.json",
+      "status": "removed",
+      "changes": 51
+    },
+    {
+      "filename": "packages/enterprise/public/apple-touch-icon-v3.png",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/public/apple-touch-icon.png",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/public/favicon-96x96-v3.png",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/public/favicon-96x96.png",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/public/favicon-v3.ico",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/public/favicon-v3.svg",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/public/favicon.ico",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/public/favicon.svg",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/public/site.webmanifest",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/public/social-share-zen.png",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/public/social-share.png",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/public/web-app-manifest-192x192.png",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/public/web-app-manifest-512x512.png",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/script/scrap.ts",
+      "status": "removed",
+      "changes": 15
+    },
+    {
+      "filename": "packages/enterprise/src/app.css",
+      "status": "removed",
+      "changes": 3
+    },
+    {
+      "filename": "packages/enterprise/src/app.tsx",
+      "status": "removed",
+      "changes": 114
+    },
+    {
+      "filename": "packages/enterprise/src/core/share-document.ts",
+      "status": "removed",
+      "changes": 361
+    },
+    {
+      "filename": "packages/enterprise/src/core/share.ts",
+      "status": "removed",
+      "changes": 233
+    },
+    {
+      "filename": "packages/enterprise/src/core/storage.ts",
+      "status": "removed",
+      "changes": 129
+    },
+    {
+      "filename": "packages/enterprise/src/custom-elements.d.ts",
+      "status": "removed",
+      "changes": 1
+    },
+    {
+      "filename": "packages/enterprise/src/entry-client.tsx",
+      "status": "removed",
+      "changes": 4
+    },
+    {
+      "filename": "packages/enterprise/src/entry-server.tsx",
+      "status": "removed",
+      "changes": 38
+    },
+    {
+      "filename": "packages/enterprise/src/global.d.ts",
+      "status": "removed",
+      "changes": 5
+    },
+    {
+      "filename": "packages/enterprise/src/routes/[...404].tsx",
+      "status": "removed",
+      "changes": 25
+    },
+    {
+      "filename": "packages/enterprise/src/routes/api/[...path].ts",
+      "status": "removed",
+      "changes": 171
+    },
+    {
+      "filename": "packages/enterprise/src/routes/index.tsx",
+      "status": "removed",
+      "changes": 3
+    },
+    {
+      "filename": "packages/enterprise/src/routes/share.tsx",
+      "status": "removed",
+      "changes": 5
+    },
+    {
+      "filename": "packages/enterprise/src/routes/share/[shareID].tsx",
+      "status": "removed",
+      "changes": 361
+    },
+    {
+      "filename": "packages/enterprise/sst-env.d.ts",
+      "status": "removed",
+      "changes": 10
+    },
+    {
+      "filename": "packages/enterprise/test-debug.ts",
+      "status": "removed",
+      "changes": 40
+    },
+    {
+      "filename": "packages/enterprise/test/core/share-document.test.ts",
+      "status": "removed",
+      "changes": 179
+    },
+    {
+      "filename": "packages/enterprise/test/core/share.test.ts",
+      "status": "removed",
+      "changes": 340
+    },
+    {
+      "filename": "packages/enterprise/test/core/storage.test.ts",
+      "status": "removed",
+      "changes": 64
+    },
+    {
+      "filename": "packages/enterprise/tsconfig.json",
+      "status": "removed",
+      "changes": 22
+    },
+    {
+      "filename": "packages/enterprise/vite.config.ts",
+      "status": "removed",
+      "changes": 37
+    },
+    {
+      "filename": "packages/function/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/function/src/share.ts",
+      "status": "added",
+      "changes": 171
+    },
+    {
+      "filename": "packages/gui-extensions/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/gui-extensions/src/file/artifact-view.tsx",
+      "status": "modified",
+      "changes": 13
+    },
+    {
+      "filename": "packages/gui-extensions/src/file/list.tsx",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/gui-extensions/src/file/tree-v2.tsx",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/gui-extensions/src/terminal/panel.tsx",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/gui-extensions/src/updater/main.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/gui-extensions/src/updater/migration.test.ts",
+      "status": "removed",
+      "changes": 25
+    },
+    {
+      "filename": "packages/gui-extensions/src/updater/migration.ts",
+      "status": "removed",
+      "changes": 22
+    },
+    {
+      "filename": "packages/gui-extensions/src/updater/platform.ts",
+      "status": "modified",
+      "changes": 28
+    },
+    {
+      "filename": "packages/http-recorder/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/http-recorder/test/websocket.test.ts",
+      "status": "modified",
+      "changes": 24
+    },
+    {
+      "filename": "packages/httpapi-codegen/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/latex/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/merman/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/merman/src/layout-audit.test.ts",
+      "status": "modified",
+      "changes": 37
+    },
+    {
+      "filename": "packages/merman/src/state/routing.ts",
+      "status": "modified",
+      "changes": 3
+    },
+    {
+      "filename": "packages/plugin-browser/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/plugin/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/plugins/figma/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/protocol/openapi.json",
+      "status": "modified",
+      "changes": 279
+    },
+    {
+      "filename": "packages/protocol/package.json",
+      "status": "modified",
+      "changes": 3
+    },
+    {
+      "filename": "packages/protocol/src/api.ts",
+      "status": "modified",
+      "changes": 3
+    },
+    {
+      "filename": "packages/protocol/src/client.ts",
+      "status": "modified",
+      "changes": 1
+    },
+    {
+      "filename": "packages/protocol/src/groups/voice.ts",
+      "status": "added",
+      "changes": 65
+    },
+    {
+      "filename": "packages/schema/package.json",
+      "status": "modified",
+      "changes": 3
+    },
+    {
+      "filename": "packages/schema/script/config-schema.ts",
+      "status": "added",
+      "changes": 86
+    },
+    {
+      "filename": "packages/schema/script/config-v1.json",
+      "status": "renamed",
+      "changes": 2
+    },
+    {
+      "filename": "packages/schema/src/config/provider.ts",
+      "status": "modified",
+      "changes": 20
+    },
+    {
+      "filename": "packages/schema/src/model.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/schema/src/tui-event.ts",
+      "status": "modified",
+      "changes": 1
+    },
+    {
+      "filename": "packages/schema/test/contract-hygiene.test.ts",
+      "status": "modified",
+      "changes": 3
+    },
+    {
+      "filename": "packages/schema/test/v1-isolation.test.ts",
+      "status": "modified",
+      "changes": 10
+    },
+    {
+      "filename": "packages/sdk/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/sdk/test/promise.test.ts",
+      "status": "modified",
+      "changes": 4
+    },
+    {
+      "filename": "packages/sdk/test/transport.test.ts",
+      "status": "modified",
+      "changes": 7
+    },
+    {
+      "filename": "packages/server/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/server/src/handlers.ts",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/server/src/handlers/voice.ts",
+      "status": "added",
+      "changes": 39
+    },
+    {
+      "filename": "packages/server/src/handlers/websearch.ts",
+      "status": "modified",
+      "changes": 4
+    },
+    {
+      "filename": "packages/server/src/options.ts",
+      "status": "modified",
+      "changes": 1
+    },
+    {
+      "filename": "packages/server/src/routes.ts",
+      "status": "modified",
+      "changes": 1
+    },
+    {
+      "filename": "packages/server/test/voice.test.ts",
+      "status": "added",
+      "changes": 88
+    },
+    {
+      "filename": "packages/session-ui/component-tests/tool-group.spec.ts",
+      "status": "modified",
+      "changes": 114
+    },
+    {
+      "filename": "packages/session-ui/package.json",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/session-ui/src/components/message-part.css",
+      "status": "modified",
+      "changes": 35
+    },
+    {
+      "filename": "packages/session-ui/src/context/data.tsx",
+      "status": "modified",
+      "changes": 13
+    },
+    {
+      "filename": "packages/session-ui/src/message/current-message.tsx",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/session-ui/src/message/message-content.tsx",
+      "status": "modified",
+      "changes": 75
+    },
+    {
+      "filename": "packages/session-ui/src/storybook/current-session-fixtures.ts",
+      "status": "modified",
+      "changes": 47
+    },
+    {
+      "filename": "packages/session-ui/src/storybook/current-session-story.tsx",
+      "status": "modified",
+      "changes": 3
+    },
+    {
+      "filename": "packages/session-ui/src/timeline/file-changes.stories.tsx",
+      "status": "modified",
+      "changes": 72
+    },
+    {
+      "filename": "packages/session-ui/src/timeline/projection.ts",
+      "status": "modified",
+      "changes": 92
+    },
+    {
+      "filename": "packages/session-ui/src/timeline/rows-current.test.ts",
+      "status": "modified",
+      "changes": 63
+    },
+    {
+      "filename": "packages/session-ui/src/timeline/session-timeline-row.tsx",
+      "status": "modified",
+      "changes": 80
+    },
+    {
+      "filename": "packages/session-ui/src/timeline/session-timeline.tsx",
+      "status": "modified",
+      "changes": 2
+    },
+    {
+      "filename": "packages/session-ui/src/timeline/timeline-row.stories.tsx",
+      "status": "modified",
+      "changes": 14
+    },
+    {
+      "filename": "packages/session-ui/src/timeline/timeline-row.ts",
+      "status": "modified",
+      "changes": 16
+    }
+  ]
+}

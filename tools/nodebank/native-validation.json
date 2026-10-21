@@ -1,0 +1,33 @@
+{
+  "checked_at_utc": "2026-10-12T12:03:03.856307+00:00",
+  "engine": "nodebank-native",
+  "candidate_count": 29,
+  "vps_counts": {
+    "failed": 1,
+    "healthy": 28,
+    "pending": 0,
+    "unsupported": 0
+  },
+  "mot_healthy_routes": 29,
+  "active_node": "DIRECT",
+  "active_exit_ip": "43.159.58.17",
+  "bank_and_runtime_memory_bytes": 18280448,
+  "combined_memory_limit_bytes": 402653184,
+  "routing_enabled": true,
+  "rotate_on_limit": true,
+  "mihomo_active": false,
+  "verification": {
+    "rust_tests": 13,
+    "adapter_and_runtime_tests": "passed",
+    "router_tests": "passed",
+    "tls_streaming": "passed",
+    "concurrent_node_selection": "passed",
+    "live_failover_from_limited_proxy_to_direct": {
+      "from_exit_ip": "149.88.23.202",
+      "to_exit_ip": "43.159.58.17",
+      "http_status": 200,
+      "elapsed_ms": 2570
+    }
+  },
+  "scope": "29 candidate shortlist on VPS; not a million-node stress benchmark"
+}

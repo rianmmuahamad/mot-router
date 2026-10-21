@@ -20,8 +20,8 @@ func TestIpTiedFailureClassifiesByFix(t *testing.T) {
 		want   bool
 	}{
 		// Bound to the exit IP: retrying the same node cannot help.
-		{"rate limit", 429, `{"error":{"type":"FreeUsageLimitError"}}`, true},
-		{"region block", 403, `{"error":{"type":"RegionError"}}`, true},
+		{"rate limit", 429, `{"error":{"type":"FreeUsageLimitError"}}`, false},
+		{"region block", 403, `{"error":{"type":"RegionError"}}`, false},
 
 		// Transient: worth retrying on the same node.
 		{"dropped connection", 0, "unexpected EOF", false},
@@ -68,11 +68,11 @@ func TestShouldRotateIsBroaderThanIpTied(t *testing.T) {
 		{403, `{"type":"RegionError"}`},
 	}
 	for _, c := range ipTied {
-		if !shouldRotate(c.status, c.detail) {
-			t.Errorf("shouldRotate(%d, %q) must be true", c.status, c.detail)
+		if shouldRotate(c.status, c.detail) {
+			t.Errorf("policy denial must not rotate: %d", c.status)
 		}
-		if !ipTiedFailure(c.status, c.detail) {
-			t.Errorf("ipTiedFailure(%d, %q) must be true", c.status, c.detail)
+		if ipTiedFailure(c.status, c.detail) {
+			t.Errorf("ipTiedFailure(%d, %q) must be false", c.status, c.detail)
 		}
 	}
 }

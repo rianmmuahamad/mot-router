@@ -1,0 +1,10 @@
+{
+  "model": "deepseek-v4.1-flash-free",
+  "egress": "laptop direct",
+  "version": "opencode v2.0.29",
+  "exit_code": 0,
+  "text": "DEEPSEEK_NATIVE_VPS_OK",
+  "errors": [],
+  "stderr": "",
+  "ok": true
+}

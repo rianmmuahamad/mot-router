@@ -1,0 +1,86 @@
+{
+  "client_format": "v1",
+  "verified_version": "1.19.0",
+  "upstream_url": "https://opencode.ai/inference/v1",
+  "verdict": "ok",
+  "source": "probe",
+  "checked_at": 1791993123235,
+  "user_agent": "opencode/1.19.0 ai-sdk/provider-utils/4.0.40 runtime/bun/1.3.14",
+  "required_tools": [
+    "bash",
+    "read"
+  ],
+  "automatic": {
+    "enabled": true,
+    "refreshing": false,
+    "recovery_attempts": 0,
+    "repairs": 0,
+    "limits": "Kandidat dan layout ID yang dikenali saja; algoritme baru yang belum didukung memerlukan pembaruan."
+  },
+  "adaptations": [
+    "User-Agent diset ke opencode/1.19.0 ai-sdk/provider-utils/4.0.40 runtime/bun/1.3.14",
+    "session id dibentuk ulang sesuai pola ses_hhhhhhhhhhhhaaaaaaaaaaaaaa",
+    "body dipaksa \"stream\": true",
+    "tool wajib disuntik bila klien tidak punya: bash, read",
+    "deskripsi tool wajib mengikuti profil yang terverifikasi; schema tool klien dipertahankan",
+    "tool tambahan ditoleransi, jadi tool asli klien tetap diteruskan"
+  ],
+  "conditions": [
+    {
+      "name": "baseline",
+      "ok": true,
+      "status": 200,
+      "detail": "request uji muse-spark-1.3-contributor-free dengan 11 tools (v1)",
+      "inconclusive": null
+    },
+    {
+      "name": "user_agent_prefix",
+      "ok": true,
+      "status": 403,
+      "detail": "a non-opencode User-Agent must be refused",
+      "inconclusive": null
+    },
+    {
+      "name": "session_shape",
+      "ok": true,
+      "status": 403,
+      "detail": "a malformed session id must be refused",
+      "inconclusive": null
+    },
+    {
+      "name": "stream_required",
+      "ok": true,
+      "status": 403,
+      "detail": "a non-streaming body must be refused",
+      "inconclusive": null
+    },
+    {
+      "name": "required_tools",
+      "ok": true,
+      "status": 0,
+      "detail": "bash, read",
+      "inconclusive": null
+    },
+    {
+      "name": "tool_superset",
+      "ok": true,
+      "status": 200,
+      "detail": "extra tool names beyond the required set must be tolerated",
+      "inconclusive": null
+    },
+    {
+      "name": "min_version",
+      "ok": true,
+      "status": 0,
+      "detail": "1.18.0",
+      "inconclusive": null
+    },
+    {
+      "name": "profile_verified",
+      "ok": true,
+      "status": 200,
+      "detail": "profil akhir diuji sebelum dipakai",
+      "inconclusive": null
+    }
+  ]
+}

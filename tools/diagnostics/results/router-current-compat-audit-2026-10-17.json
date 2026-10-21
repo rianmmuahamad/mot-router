@@ -1,0 +1,73 @@
+{
+  "mode": "synthetic loopback fixture; no provider calls; no production changes",
+  "payload": {
+    "messages": [
+      {
+        "content": "Local audit fixture only.",
+        "role": "system"
+      },
+      {
+        "content": "Describe this fixture.",
+        "role": "user"
+      }
+    ],
+    "missing_fields": [
+      "temperature",
+      "top_p",
+      "parallel_tool_calls",
+      "stop",
+      "response_format",
+      "reasoning_effort"
+    ],
+    "outbound_keys_before_wire_parameter_rename": [
+      "max_tokens",
+      "messages",
+      "model",
+      "stream",
+      "stream_options",
+      "tool_choice",
+      "tools"
+    ],
+    "tool_choice_actual": "auto",
+    "tool_choice_present": true,
+    "tool_choice_requested": "none"
+  },
+  "sse_error": {
+    "event_count": 1,
+    "interrupted_flag": true,
+    "translated_response": {
+      "choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "message": {
+            "content": null,
+            "role": "assistant"
+          }
+        }
+      ],
+      "created": 1792243129,
+      "id": "chatcmpl-aa6aeb2c2e3ab436d4a77080",
+      "model": "deepseek-v4.1-flash-free",
+      "object": "chat.completion",
+      "usage": {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0
+      }
+    },
+    "upstream_http_status": 200
+  },
+  "sse_error_baseline_probe": {
+    "baseline": {
+      "ok": true,
+      "status": 200
+    },
+    "profile_verified": {
+      "ok": true,
+      "status": 200
+    },
+    "source": "probe",
+    "verdict": "ok"
+  }
+}

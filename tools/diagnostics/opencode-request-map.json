@@ -1,0 +1,380 @@
+{
+  "captured_from": "/home/rian/.opencode/bin/opencode",
+  "installed_version": "1.18.35",
+  "capture_mode": "isolated config/data/cache; localhost collector; no upstream inference; no real API credentials",
+  "requests": [
+    {
+      "path": "/v1/responses",
+      "headers": {
+        "content-type": "application/json",
+        "user-agent": "opencode/1.18.35 ai-sdk/provider-utils/4.0.40 runtime/bun/1.3.14",
+        "x-opencode-client": "cli",
+        "x-opencode-project": "global",
+        "x-opencode-request": "msg_<12 hex><14 base62>",
+        "x-opencode-session": "ses_<12 hex><14 base62>",
+        "x-opencode-session-id": "ses_<12 hex><14 base62>",
+        "accept": "*/*"
+      },
+      "authorization_kind": "public",
+      "body_bytes": 32642,
+      "body_keys": [
+        "model",
+        "input",
+        "max_output_tokens",
+        "store",
+        "include",
+        "prompt_cache_key",
+        "tools",
+        "tool_choice",
+        "stream"
+      ],
+      "stream": true,
+      "max_output_tokens": 32000,
+      "store": false,
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "name": "bash",
+          "required": [
+            "command"
+          ],
+          "schema_properties": [
+            "command",
+            "timeout",
+            "workdir"
+          ]
+        },
+        {
+          "name": "edit",
+          "required": [
+            "filePath",
+            "oldString",
+            "newString"
+          ],
+          "schema_properties": [
+            "filePath",
+            "oldString",
+            "newString",
+            "replaceAll"
+          ]
+        },
+        {
+          "name": "glob",
+          "required": [
+            "pattern"
+          ],
+          "schema_properties": [
+            "pattern",
+            "path"
+          ]
+        },
+        {
+          "name": "grep",
+          "required": [
+            "pattern"
+          ],
+          "schema_properties": [
+            "pattern",
+            "path",
+            "include"
+          ]
+        },
+        {
+          "name": "read",
+          "required": [
+            "filePath"
+          ],
+          "schema_properties": [
+            "filePath",
+            "offset",
+            "limit"
+          ]
+        },
+        {
+          "name": "skill",
+          "required": [
+            "name"
+          ],
+          "schema_properties": [
+            "name"
+          ]
+        },
+        {
+          "name": "task",
+          "required": [
+            "description",
+            "prompt",
+            "subagent_type"
+          ],
+          "schema_properties": [
+            "description",
+            "prompt",
+            "subagent_type",
+            "task_id",
+            "command"
+          ]
+        },
+        {
+          "name": "todowrite",
+          "required": [
+            "todos"
+          ],
+          "schema_properties": [
+            "todos"
+          ]
+        },
+        {
+          "name": "webfetch",
+          "required": [
+            "url"
+          ],
+          "schema_properties": [
+            "url",
+            "format",
+            "timeout"
+          ]
+        },
+        {
+          "name": "websearch",
+          "required": [
+            "query"
+          ],
+          "schema_properties": [
+            "query",
+            "numResults",
+            "livecrawl",
+            "type",
+            "contextMaxCharacters"
+          ]
+        },
+        {
+          "name": "write",
+          "required": [
+            "content",
+            "filePath"
+          ],
+          "schema_properties": [
+            "content",
+            "filePath"
+          ]
+        }
+      ],
+      "input_roles": [
+        "developer",
+        "user"
+      ]
+    },
+    {
+      "path": "/v1/chat/completions",
+      "headers": {
+        "content-type": "application/json",
+        "user-agent": "opencode/1.18.35 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.14",
+        "x-opencode-client": "cli",
+        "x-opencode-project": "global",
+        "x-opencode-request": "msg_<12 hex><14 base62>",
+        "x-opencode-session": "ses_<12 hex><14 base62>",
+        "x-opencode-session-id": "ses_<12 hex><14 base62>",
+        "accept": "*/*"
+      },
+      "authorization_kind": "public",
+      "body_bytes": 32692,
+      "body_keys": [
+        "model",
+        "max_tokens",
+        "messages",
+        "tools",
+        "tool_choice",
+        "stream",
+        "stream_options"
+      ],
+      "stream": true,
+      "max_output_tokens": null,
+      "store": null,
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "name": "bash",
+          "required": [
+            "command"
+          ],
+          "schema_properties": [
+            "command",
+            "timeout",
+            "workdir"
+          ]
+        },
+        {
+          "name": "edit",
+          "required": [
+            "filePath",
+            "oldString",
+            "newString"
+          ],
+          "schema_properties": [
+            "filePath",
+            "oldString",
+            "newString",
+            "replaceAll"
+          ]
+        },
+        {
+          "name": "glob",
+          "required": [
+            "pattern"
+          ],
+          "schema_properties": [
+            "pattern",
+            "path"
+          ]
+        },
+        {
+          "name": "grep",
+          "required": [
+            "pattern"
+          ],
+          "schema_properties": [
+            "pattern",
+            "path",
+            "include"
+          ]
+        },
+        {
+          "name": "read",
+          "required": [
+            "filePath"
+          ],
+          "schema_properties": [
+            "filePath",
+            "offset",
+            "limit"
+          ]
+        },
+        {
+          "name": "skill",
+          "required": [
+            "name"
+          ],
+          "schema_properties": [
+            "name"
+          ]
+        },
+        {
+          "name": "task",
+          "required": [
+            "description",
+            "prompt",
+            "subagent_type"
+          ],
+          "schema_properties": [
+            "description",
+            "prompt",
+            "subagent_type",
+            "task_id",
+            "command"
+          ]
+        },
+        {
+          "name": "todowrite",
+          "required": [
+            "todos"
+          ],
+          "schema_properties": [
+            "todos"
+          ]
+        },
+        {
+          "name": "webfetch",
+          "required": [
+            "url"
+          ],
+          "schema_properties": [
+            "url",
+            "format",
+            "timeout"
+          ]
+        },
+        {
+          "name": "websearch",
+          "required": [
+            "query"
+          ],
+          "schema_properties": [
+            "query",
+            "numResults",
+            "livecrawl",
+            "type",
+            "contextMaxCharacters"
+          ]
+        },
+        {
+          "name": "write",
+          "required": [
+            "content",
+            "filePath"
+          ],
+          "schema_properties": [
+            "content",
+            "filePath"
+          ]
+        }
+      ],
+      "input_roles": [
+        "system",
+        "user"
+      ]
+    }
+  ],
+  "router_comparison": {
+    "baseline_endpoint": "/responses",
+    "baseline_tool_count": 21,
+    "baseline_tools": "synthetic schemas with empty properties",
+    "native_cli_tools": 11,
+    "native_cli_has_system_prompt": true,
+    "router_baseline_has_system_prompt": false,
+    "native_muse_extra_fields": [
+      "include",
+      "prompt_cache_key"
+    ],
+    "release_lookup": "opencode-ai/latest resolves to V1 1.19.0; official V2 uses @opencode/cli",
+    "status": "mapping_complete; upstream acceptance not verified",
+    "confirmed_v2_detection_gap": "officialHints reads opencode-ai/latest (V1 channel), not @opencode/cli/latest (V2 channel). Its existing UA and source parser are V1-specific."
+  },
+  "connectivity": {
+    "ssh_mot": "No route to host",
+    "arbyte_models": "No route to host",
+    "unauthenticated_python_opencode_models": "403 edge error code 1010, not proof of Header Adaptation error cause"
+  },
+  "caveat": "The differences are diagnostic findings, not a verified cause or fix for the VPS baseline 403.",
+  "v2_source_verified": {
+    "package": "@opencode/core",
+    "version": "2.0.29",
+    "source_integrity_verified": true,
+    "official_cli_package": "@opencode/cli",
+    "official_cli_version": "2.0.29",
+    "user_agent_template": "opencode/<channel>/<version>/<app.name>",
+    "x_opencode_session": "parent session ID, otherwise fork origin session ID, otherwise current session ID",
+    "x_opencode_session_id": "current session ID",
+    "x_opencode_client": "app.name",
+    "x_opencode_request": "not set in session/model-request.ts; provider transport still needs inspection before assuming absence on the wire",
+    "prompt_cache_key": "session affinity; ses_64hex affinity strips ses_ prefix",
+    "tools_permission_migration": {
+      "bash": "shell",
+      "task": "subagent",
+      "write": "edit",
+      "patch": "edit"
+    },
+    "source_files": [
+      "packages/core/src/app.ts",
+      "packages/core/src/session/affinity.ts",
+      "packages/core/src/session/model-request.ts"
+    ],
+    "evidence_links": [
+      "https://registry.npmjs.org/@opencode/core/2.0.29",
+      "https://registry.npmjs.org/@opencode/cli/latest",
+      "https://opencode.ai/v2/docs/migrate-v1/"
+    ],
+    "limits": "Source inspection only for V2. No V2 binary installed or V2 live request captured."
+  },
+  "superseded_active_installation_capture": "opencode-current-headers.json",
+  "installed_version_note": "This previous capture used ~/.opencode/bin. Current PATH resolves npm-global/bin at 1.19.0."
+}

@@ -1,0 +1,19 @@
+{
+  "startup_paused_and_sources_disabled": true,
+  "cross_site_rejected": true,
+  "local_checks": {
+    "nodes": 500,
+    "seconds": 7.98,
+    "nodes_per_second": 62.66
+  },
+  "export_ip_dedup_config_permissions_pagination": true,
+  "import_pause_resume": true,
+  "endpoint_failure_preserves_bank": true,
+  "scan_pause_resume": true,
+  "worker_crash_requeues": true,
+  "engine_crash_recovers": true,
+  "combined_rss_peak_mib": 52.76,
+  "stats_request_max_ms": 13.73,
+  "peak_fixture_tunnels": 19,
+  "cpu_seconds_initial_process": 11.35
+}

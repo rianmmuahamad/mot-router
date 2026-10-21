@@ -1,0 +1,41 @@
+[Unit]
+Description=Arbyte NullClaw operations agent
+After=network-online.target mot-router.service mot-nodebank.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=arbyte-agent
+Group=arbyte-agent
+WorkingDirectory=/var/lib/arbyte-agent/.nullclaw/workspace
+Environment=HOME=/var/lib/arbyte-agent
+Environment=SHELL=/bin/sh
+Environment=NULLCLAW_HOME=/var/lib/arbyte-agent/.nullclaw
+Environment=NULLCLAW_WORKSPACE=/var/lib/arbyte-agent/.nullclaw/workspace
+ExecStart=/usr/local/bin/nullclaw gateway
+Restart=on-failure
+RestartSec=10
+UMask=0077
+MemoryAccounting=true
+MemoryHigh=96M
+MemoryMax=128M
+MemorySwapMax=0
+CPUQuota=25%
+TasksMax=48
+LimitNOFILE=512
+Nice=10
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/arbyte-agent
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+KillMode=control-group
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,27 @@
+[Unit]
+Description=motgate guard — admission control in front of mot-router
+After=network-online.target mot-router.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=motgate
+Group=motgate
+WorkingDirectory=/opt/mot-router/tools/guard
+EnvironmentFile=/etc/mot-router/guard.env
+ExecStart=/opt/mot-router/tools/guard/guard \
+    --listen 127.0.0.1:8791 \
+    --upstream http://127.0.0.1:8787 \
+    --max-inflight 64 \
+    --per-user-inflight 4 \
+    --global-rps 40 \
+    --user-rps 8
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

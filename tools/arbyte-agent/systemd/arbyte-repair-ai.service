@@ -1,0 +1,20 @@
+[Unit]
+Description=Arbyte incident AI worker (independent provider required)
+After=arbyte-agent.service arbyte-repair-broker.service
+
+[Service]
+Type=oneshot
+User=arbyte-agent
+Group=arbyte-agent
+ExecStart=/usr/local/bin/arbyte-agent repair
+WorkingDirectory=/var/lib/arbyte-agent/.nullclaw/workspace
+UMask=0077
+MemoryMax=32M
+CPUQuota=10%
+TasksMax=8
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/arbyte-agent
+PrivateTmp=true
+NoNewPrivileges=true
+TimeoutStartSec=200

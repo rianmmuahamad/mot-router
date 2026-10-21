@@ -2,6 +2,7 @@ package gate
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -41,17 +42,35 @@ func TestInconclusiveCoversTransportFailure(t *testing.T) {
 // error, then answers correctly. A prober that treated the error as a rejection
 // would keep every name.
 func TestDiscoverRequiredToolsSurvivesFlakyNetwork(t *testing.T) {
-	var failedOnce atomic.Bool
+	var calls atomic.Int32
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Reject a request that omits the required pair, so reduction can succeed.
-		body := make([]byte, r.ContentLength)
-		r.Body.Read(body)
-		missingRequired := !containsAll(string(body), []string{"bash", "read"})
+		var body struct {
+			Tools []struct {
+				Name     string `json:"name"`
+				Function struct {
+					Name string `json:"name"`
+				} `json:"function"`
+			} `json:"tools"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Error(err)
+			w.WriteHeader(400)
+			return
+		}
+		names := map[string]bool{}
+		for _, tool := range body.Tools {
+			name := tool.Name
+			if name == "" {
+				name = tool.Function.Name
+			}
+			names[name] = true
+		}
+		missingRequired := !names["bash"] || !names["read"]
 
-		if !failedOnce.Load() {
+		if calls.Add(1) == 2 {
 			// Simulate one dropped connection early in the scan.
-			failedOnce.Store(true)
 			hj, ok := w.(http.Hijacker)
 			if ok {
 				conn, _, err := hj.Hijack()
@@ -68,10 +87,12 @@ func TestDiscoverRequiredToolsSurvivesFlakyNetwork(t *testing.T) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(testProbeCompletion))
 	}))
 	defer srv.Close()
 
 	p := NewProber(srv.URL, "test-model")
+	p.ToolPool = []string{"bash", "read", "edit", "grep", "glob"}
 	p.Configure(srv.Client(), nil)
 
 	got := p.discoverRequiredTools(context.Background(), "opencode/1.18.31", "ses_0123456789ababcdefghijklmn")

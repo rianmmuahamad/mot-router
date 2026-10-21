@@ -3,32 +3,29 @@
 package zen
 
 import (
-	"bufio"
 	"bytes"
 	"context"
-	"crypto/md5"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
-	"time"
+
+	"github.com/rian/mot-router/internal/gate"
+	"github.com/rian/mot-router/internal/streamwire"
 )
 
-// DefaultBaseURL is the Zen API root. Only /responses is functional upstream;
-// /chat/completions and /messages return 500.
-const DefaultBaseURL = "https://opencode.ai/zen/v1"
+// DefaultBaseURL is the API root currently used by the native OpenCode catalog.
+const DefaultBaseURL = gate.DefaultBaseURL
 
 // DefaultUserAgent must keep `opencode/<version>` as its leading token. The
 // gateway rejects anything else with a FreeTierError, and versions below 1.18.0
 // with UpgradeRequired.
-const DefaultUserAgent = "opencode/1.18.31"
+const DefaultUserAgent = gate.DefaultUserAgent
 
-// RequiredTools are the tool names the free-tier gate demands in the request
-// body. Schemas and descriptions are ignored; only the names are checked.
-var RequiredTools = []string{"bash", "edit", "glob", "grep", "read"}
+// RequiredTools is the genuine OpenCode CLI tool name demanded by the free-tier gate.
+var RequiredTools = []string{"read"}
 
 // Client talks to the Zen gateway.
 type Client struct {
@@ -38,9 +35,11 @@ type Client struct {
 	HTTP        *http.Client
 	// Gate is the probed request shape the free tier currently requires. When
 	// nil the client falls back to the historical hardcoded values.
-	Gate *GateProfile
+	Gate         *GateProfile
+	GateProvider func() *GateProfile
 	// GateVersion is the version token used when building the User-Agent.
 	GateVersion string
+	catalog     *catalogCache
 }
 
 // New builds a client with production defaults.
@@ -56,22 +55,14 @@ func New(baseURL, userAgent, upstreamKey string) *Client {
 		UserAgent:   userAgent,
 		UpstreamKey: upstreamKey,
 		// No client timeout: generations can legitimately run for minutes.
-		HTTP: &http.Client{},
+		HTTP:    &http.Client{},
+		catalog: newCatalogCache(),
 	}
 }
 
-// SessionID derives the `ses_<12 lowercase hex><14 alnum>` identifier the
-// gateway shape-checks. Deriving it from a stable seed keeps it constant across
-// a conversation, which matters because Zen pins routing and prompt caching on
-// this value.
+// SessionID reuses the same timestamp encoding and stable cache as the prober.
 func SessionID(seed string) string {
-	sum := md5.Sum([]byte(seed))
-	hex12 := hex.EncodeToString(sum[:])[:12]
-
-	sum2 := sha256.Sum256([]byte(seed))
-	alnum14 := hex.EncodeToString(sum2[:])[:14]
-
-	return "ses_" + hex12 + alnum14
+	return gate.SessionID(seed, "ses_", 12, 14)
 }
 
 // IsFreeModel reports whether a model is served by the free tier.
@@ -84,30 +75,19 @@ func IsFreeModel(model string) bool {
 // Headers assembles the upstream request headers, honouring the probed gate
 // profile so a client-identity change upstream is picked up automatically.
 func (c *Client) Headers(model, sessionSeed string) map[string]string {
+	profile := c.CurrentGate()
 	ua := c.UserAgent
-	prefix, hexLen, alnumLen := "ses_", 12, 14
-	if c.Gate != nil {
-		if c.Gate.UserAgent != "" {
-			ua = c.Gate.UserAgent
-		}
-		if c.Gate.SessionPrefix != "" {
-			prefix = c.Gate.SessionPrefix
-		}
-		if c.Gate.SessionHex > 0 {
-			hexLen = c.Gate.SessionHex
-		}
-		if c.Gate.SessionAlnum > 0 {
-			alnumLen = c.Gate.SessionAlnum
+	policy := gate.DefaultIdentity()
+	format := gate.ClientV1
+	if profile != nil {
+		format = profile.ClientFormat
+		policy = profile.Identity.Normalized()
+		if profile.UserAgent != "" {
+			ua = profile.UserAgent
 		}
 	}
-	h := map[string]string{
-		"Content-Type":       "application/json",
-		"Accept":             "text/event-stream",
-		"User-Agent":         ua,
-		"x-opencode-client":  "cli",
-		"x-opencode-project": "global",
-		"x-opencode-session": gateSessionID(sessionSeed, prefix, hexLen, alnumLen),
-	}
+	session := gate.SessionIDWithPolicy(sessionSeed, policy)
+	h := gate.ClientHeaders(ua, session, gate.RequestIDWithPolicy(sessionSeed, policy), format)
 	// Free models need no credential; `public` is what the official CLI sends.
 	if IsFreeModel(model) {
 		h["Authorization"] = "Bearer public"
@@ -117,13 +97,35 @@ func (c *Client) Headers(model, sessionSeed string) map[string]string {
 	return h
 }
 
+func (c *Client) CurrentGate() *GateProfile {
+	if c.GateProvider != nil {
+		return c.GateProvider()
+	}
+	return c.Gate
+}
+
+// EffectiveBaseURL applies a verified migration to free inference and the
+// catalog. Explicit third-party endpoints and paid requests keep their URL.
+func (c *Client) EffectiveBaseURL(model string) string {
+	profile := c.CurrentGate()
+	if (model == "" || IsFreeModel(model)) && profile != nil && gate.IsOfficialEndpoint(c.BaseURL) && gate.IsOfficialEndpoint(profile.BaseURL) {
+		return profile.BaseURL
+	}
+	return c.BaseURL
+}
+
 // Event is one decoded frame from the upstream SSE stream.
 type Event struct {
-	Type     string `json:"type"`
-	Delta    string `json:"delta"`
-	ItemID   string `json:"item_id"`
-	Item     *Item  `json:"item"`
-	Response *struct {
+	Type         string       `json:"type"`
+	Error        *StreamError `json:"error,omitempty"`
+	FinishReason string       `json:"-"`
+	// Chat conversion synthesizes a terminal event on EOF for translation.
+	// This flag distinguishes that case from a confirmed stream termination.
+	StreamInterrupted bool   `json:"-"`
+	Delta             string `json:"delta"`
+	ItemID            string `json:"item_id"`
+	Item              *Item  `json:"item"`
+	Response          *struct {
 		Usage *Usage `json:"usage"`
 	} `json:"response"`
 }
@@ -146,19 +148,23 @@ type Usage struct {
 // Stream sends a request and returns the decoded event channel plus the HTTP
 // status. The caller must drain the channel; it closes when the body ends.
 func (c *Client) Stream(ctx context.Context, model, sessionSeed string, body map[string]any) (<-chan Event, int, error) {
+	c = c.requestClient(ctx)
+	body = withToolDescriptions(model, body, c.CurrentGate())
 	if UsesChatCompletions(model) {
 		return c.StreamChatCompletions(ctx, model, sessionSeed, body)
 	}
+	headers := c.Headers(model, sessionSeed)
+	body = withPromptCacheKey(model, body, headers)
 	payload, err := json.Marshal(body)
 	if err != nil {
 		return nil, 0, fmt.Errorf("encode request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+"/responses", bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.EffectiveBaseURL(model)+"/responses", bytes.NewReader(payload))
 	if err != nil {
 		return nil, 0, fmt.Errorf("build request: %w", err)
 	}
-	for k, v := range c.Headers(model, sessionSeed) {
+	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
 
@@ -170,72 +176,95 @@ func (c *Client) Stream(ctx context.Context, model, sessionSeed string, body map
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		detail, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		resp.Body.Close()
-		return nil, resp.StatusCode, fmt.Errorf("%s", strings.TrimSpace(string(detail)))
+		return nil, resp.StatusCode, upstreamError(resp, detail)
 	}
 
 	out := make(chan Event, 16)
 	go func() {
 		defer close(out)
 		defer resp.Body.Close()
-		scanner := bufio.NewScanner(resp.Body)
-		scanner.Buffer(make([]byte, 0, 64*1024), 8*1024*1024)
-		for scanner.Scan() {
-			line := scanner.Text()
-			if !strings.HasPrefix(line, "data: ") {
-				continue
+		terminal := false
+		err := streamwire.Read(resp.Body, 8*1024*1024, func(data []byte) error {
+			if string(data) == "[DONE]" {
+				return streamwire.Stop
+			}
+			var envelope struct {
+				Error json.RawMessage `json:"error"`
+			}
+			if json.Unmarshal(data, &envelope) == nil {
+				if failure := parseStreamError(envelope.Error); failure != nil {
+					terminal = true
+					_ = emitEvent(ctx, out, Event{Type: "error", Error: failure, StreamInterrupted: true})
+					return streamwire.Stop
+				}
 			}
 			var ev Event
-			if err := json.Unmarshal([]byte(line[6:]), &ev); err != nil {
-				continue // keepalive or partial frame
+			if err := json.Unmarshal(data, &ev); err != nil {
+				return err
 			}
-			select {
-			case out <- ev:
-			case <-ctx.Done():
-				return
+			responseFinishReason(data, &ev)
+			if ev.Type == "error" && ev.Error == nil {
+				ev.Error = streamFailure("Upstream returned an error event", false)
 			}
+			if ev.Error != nil {
+				terminal = true
+				ev.Type = "error"
+				ev.StreamInterrupted = true
+				_ = emitEvent(ctx, out, ev)
+				return streamwire.Stop
+			}
+			terminal = terminal || ev.Type == "response.completed" || ev.Type == "response.incomplete"
+			return emitEvent(ctx, out, ev)
+		})
+		if err != nil {
+			_ = emitEvent(ctx, out, Event{Type: "error", Error: invalidStream(err), StreamInterrupted: true})
+		} else if !terminal {
+			_ = emitEvent(ctx, out, Event{Type: "error", Error: streamFailure("Upstream stream ended without completion", true), StreamInterrupted: true})
 		}
 	}()
 
 	return out, resp.StatusCode, nil
 }
 
+func withPromptCacheKey(model string, body map[string]any, headers map[string]string) map[string]any {
+	if !IsFreeModel(model) || body["prompt_cache_key"] != nil {
+		return body
+	}
+	key := headers["x-opencode-session"]
+	if key == "" {
+		return body
+	}
+	// V2 strips the ses_ prefix only for an externally supplied SHA-256 affinity.
+	if len(key) == 68 && strings.HasPrefix(key, "ses_") {
+		if _, err := hex.DecodeString(key[4:]); err == nil {
+			key = key[4:]
+		}
+	}
+	copy := make(map[string]any, len(body)+1)
+	for k, v := range body {
+		copy[k] = v
+	}
+	copy["prompt_cache_key"] = key
+	return copy
+}
+
 // Model is a catalog entry from /models.
 type Model struct {
-	ID      string `json:"id"`
-	Object  string `json:"object"`
-	Created int64  `json:"created"`
-	OwnedBy string `json:"owned_by"`
+	ID            string `json:"id"`
+	Object        string `json:"object"`
+	Created       int64  `json:"created"`
+	OwnedBy       string `json:"owned_by"`
+	Family        string `json:"family,omitempty"`
+	Reasoning     *bool  `json:"reasoning,omitempty"`
+	MaxOutput     int    `json:"max_output_tokens,omitempty"`
+	ContextWindow int    `json:"context_window,omitempty"`
+	Protocol      string `json:"protocol,omitempty"`
+	Status        string `json:"status,omitempty"`
 }
 
 // ListModels fetches the upstream model catalog.
 func (c *Client) ListModels(ctx context.Context) ([]Model, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+"/models", nil)
-	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
-	}
-	req.Header.Set("User-Agent", c.UserAgent)
-	req.Header.Set("x-opencode-session", SessionID("models"))
-
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	resp, err := c.HTTP.Do(req.WithContext(ctx))
-	if err != nil {
-		return nil, fmt.Errorf("list models: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("list models: upstream returned %d", resp.StatusCode)
-	}
-
-	var payload struct {
-		Data []Model `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		return nil, fmt.Errorf("decode models: %w", err)
-	}
-	return payload.Data, nil
+	return c.listCachedModels(ctx)
 }
 
 // Tool is a function definition in the Responses API format.
@@ -254,8 +283,9 @@ type Tool struct {
 // calls have to be rewritten or dropped before reaching the client.
 func PrepareTools(clientTools []Tool, gate *GateProfile) ([]Tool, *ToolInjection) {
 	inj := &ToolInjection{
-		Injected:  map[string]*string{},
-		Originals: map[string]string{},
+		ArgumentAliases: map[string]map[string]string{},
+		Injected:        map[string]*string{},
+		Originals:       map[string]string{},
 	}
 
 	tools := []Tool{}
@@ -276,10 +306,15 @@ func PrepareTools(clientTools []Tool, gate *GateProfile) ([]Tool, *ToolInjection
 		if params == nil {
 			params = map[string]any{"type": "object", "properties": map[string]any{}}
 		}
+		description := t.Description
+		if gate != nil && gate.ToolDescriptions[low] != "" {
+			description = gate.ToolDescriptions[low]
+			params, inj.ArgumentAliases[low] = nativeToolSchema(low, gate.ClientFormat, params)
+		}
 		tools = append(tools, Tool{
 			Type:        "function",
 			Name:        low,
-			Description: t.Description,
+			Description: description,
 			Parameters:  params,
 		})
 	}
@@ -311,12 +346,36 @@ func PrepareTools(clientTools []Tool, gate *GateProfile) ([]Tool, *ToolInjection
 				"properties": map[string]any{"command": map[string]any{"type": "string"}},
 				"required":   []string{"command"},
 			}
+			// V2 renamed these tools. Keep the caller's argument contract when
+			// adding an alias, so the response can be renamed back unchanged.
+			if gate != nil && gate.ClientFormat == "v2" && (low == "shell" || low == "subagent") {
+				for _, original := range clientTools {
+					if original.Name == *equiv && original.Parameters != nil {
+						params = original.Parameters
+						break
+					}
+				}
+			}
 		}
 
+		description := stubDescription(low, equiv)
+		if gate != nil && gate.ToolDescriptions[low] != "" {
+			description = gate.ToolDescriptions[low]
+			params = gateToolParameters(low, gate.ClientFormat)
+			if equiv != nil {
+				for _, original := range clientTools {
+					if original.Name == *equiv && original.Parameters != nil {
+						params = original.Parameters
+						break
+					}
+				}
+			}
+			params, inj.ArgumentAliases[low] = nativeToolSchema(low, gate.ClientFormat, params)
+		}
 		tools = append(tools, Tool{
 			Type:        "function",
 			Name:        low,
-			Description: stubDescription(low, equiv),
+			Description: description,
 			Parameters:  params,
 		})
 	}
@@ -334,6 +393,7 @@ func RewriteToolName(low string, inj *ToolInjection, argsJSON string) (name, arg
 	if inj == nil {
 		return low, argsJSON, true
 	}
+	argsJSON = rewriteArgumentKeys(argsJSON, inj.ArgumentAliases[low], false)
 
 	// A tool the client declared: restore its original casing.
 	if original, present := inj.Originals[low]; present {

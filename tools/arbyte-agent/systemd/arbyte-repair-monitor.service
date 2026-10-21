@@ -1,0 +1,20 @@
+[Unit]
+Description=Arbyte recovery monitoring and confirmed procedures
+After=arbyte-repair-broker.service
+Requires=arbyte-repair-broker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/arbyte-agent/recovery_monitor.py
+UMask=0077
+MemoryMax=64M
+CPUQuota=25%
+TasksMax=16
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/arbyte-repair /var/backups/arbyte-repair /var/lib/arbyte-agent/repair-workspaces
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+TimeoutStartSec=100
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

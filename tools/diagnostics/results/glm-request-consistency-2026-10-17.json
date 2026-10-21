@@ -1,0 +1,49 @@
+{
+  "model": "glm-5.3-flash-free",
+  "checks": {
+    "baseline": {
+      "probe_model": "glm-5.3-flash-free",
+      "source": "fallback",
+      "verdict": "baseline rejected with 429",
+      "client_format": "v1",
+      "verified_version": "1.19.0",
+      "required_tools": [
+        "read"
+      ],
+      "conditions": [
+        {
+          "name": "baseline",
+          "ok": false,
+          "status": 429,
+          "inconclusive": true
+        }
+      ]
+    }
+  },
+  "model_substitution": false,
+  "stopped": "GLM baseline did not verify; no extra inference or IP rotation requested",
+  "artifact_sha256": "f657e5d7b6c2e89443fef1e99b296c7c83e574bb29c08f217c5f4a1db063bc7b",
+  "source_sha256": "b20c602353dcc0987369ff04c828036ad34036083457311088958d70aa34186e",
+  "backup": "/var/backups/mot-router/glm-consistency-20261017T070042Z",
+  "upstream_error": {
+    "http_status": 429,
+    "type": "server_error",
+    "message": "Upstream request failed: Endpoint is unavailable."
+  },
+  "services": {
+    "mot-router": "active",
+    "mot-nodebank-runtime": "active",
+    "mot-nodebank": "active",
+    "guard": "active"
+  },
+  "native_runtime_restarted": false,
+  "selected_node_unchanged": "NB-f3f307948be4b815f64be007",
+  "tests": {
+    "short_race_suite": "passed",
+    "omp_schema_and_regression_tests": "passed",
+    "omp_version": "18.2.9",
+    "captured_omp_tool_count": 11
+  },
+  "production_403_resolved": false,
+  "credentials_changed": false
+}

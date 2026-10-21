@@ -1,0 +1,36 @@
+[Unit]
+Description=Mot NodeBank native proxy runtime for MOT group
+After=network-online.target mot-nodebank.service
+Wants=network-online.target mot-nodebank.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+Slice=mot-nodebank.slice
+WorkingDirectory=/opt/mot-router/nodebank
+ExecStart=/opt/mot-router/nodebank/nodebank-runtime runtime --bank-url http://127.0.0.1:8792 --snapshot /opt/mot-router/data/nodebank/healthy-v1.json --controller 127.0.0.1:9093 --proxy 127.0.0.1:7893
+Restart=on-failure
+RestartSec=5
+UMask=0077
+Environment=GOMAXPROCS=2
+Environment=GOMEMLIMIT=96MiB
+MemoryAccounting=true
+MemoryHigh=96M
+MemoryMax=160M
+MemorySwapMax=0
+CPUQuota=75%
+TasksMax=64
+LimitNOFILE=1024
+Nice=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+KillMode=control-group
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,26 @@
+[Unit]
+Description=ipfarm — refresh the proxy pool and rotate exit IPs for mot-router
+After=network-online.target mot-router.service mihomo-farm.service
+Wants=mot-router.service mihomo-farm.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/mot-router/tools/ipfarm
+# One full cycle: fetch sources -> check liveness/Zen -> emit providers ->
+# reload mihomo -> wire mot-router. Then sleep, and repeat.
+ExecStart=/opt/mot-router/tools/ipfarm/ipfarm run \
+    --work /var/lib/ipfarm \
+    --mihomo-home /var/lib/mihomo-farm \
+    --mihomo http://127.0.0.1:9090 \
+    --router http://127.0.0.1:8787 \
+    --conc1 900 \
+    --conc2 300 \
+    --interval 3600
+Restart=always
+RestartSec=30
+NoNewPrivileges=true
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

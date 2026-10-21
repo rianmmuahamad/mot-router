@@ -1,0 +1,173 @@
+{
+  "models": {
+    "providers": {
+      "arbyte": {
+        "api_key": "REPLACED_ON_VPS",
+        "base_url": "http://127.0.0.1:8787/v1",
+        "api_mode": "chat_completions"
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "arbyte/deepseek-v4.1-flash-free"
+      }
+    }
+  },
+  "agent": {
+    "max_tool_iterations": 12,
+    "max_history_messages": 30,
+    "parallel_tools": false,
+    "token_limit": 24000,
+    "message_timeout_secs": 90,
+    "timezone": "UTC+07:00"
+  },
+  "channels": {
+    "cli": true
+  },
+  "memory": {
+    "backend": "sqlite",
+    "auto_save": true,
+    "embedding_provider": "none",
+    "hygiene_enabled": true
+  },
+  "gateway": {
+    "host": "127.0.0.1",
+    "port": 8798,
+    "require_pairing": true,
+    "allow_public_bind": false
+  },
+  "autonomy": {
+    "level": "full",
+    "workspace_only": true,
+    "allowed_commands": [
+      "arbytectl"
+    ],
+    "allowed_paths": [
+      "/usr/local/bin/arbytectl",
+      "/var/lib/arbyte-agent/ops"
+    ],
+    "max_actions_per_hour": 120,
+    "block_high_risk_commands": true,
+    "block_medium_risk_commands": true,
+    "require_approval_for_medium_risk": true
+  },
+  "tools": {
+    "shell_timeout_secs": 40,
+    "shell_max_output_bytes": 32768,
+    "max_file_size_bytes": 65536,
+    "tool_customizations": [
+      {
+        "name": "shell",
+        "enabled": true
+      },
+      {
+        "name": "file_read",
+        "enabled": true
+      },
+      {
+        "name": "file_write",
+        "enabled": true
+      },
+      {
+        "name": "file_edit",
+        "enabled": false
+      },
+      {
+        "name": "file_append",
+        "enabled": false
+      },
+      {
+        "name": "file_read_hashed",
+        "enabled": false
+      },
+      {
+        "name": "file_edit_hashed",
+        "enabled": false
+      },
+      {
+        "name": "git",
+        "enabled": false
+      },
+      {
+        "name": "image_info",
+        "enabled": false
+      },
+      {
+        "name": "memory_store",
+        "enabled": true
+      },
+      {
+        "name": "memory_recall",
+        "enabled": true
+      },
+      {
+        "name": "memory_list",
+        "enabled": true
+      },
+      {
+        "name": "memory_forget",
+        "enabled": true
+      },
+      {
+        "name": "delegate",
+        "enabled": false
+      },
+      {
+        "name": "schedule",
+        "enabled": false
+      },
+      {
+        "name": "spawn",
+        "enabled": false
+      },
+      {
+        "name": "sqlite_query",
+        "enabled": false
+      }
+    ]
+  },
+  "scheduler": {
+    "enabled": false,
+    "max_tasks": 8,
+    "max_concurrent": 1,
+    "agent_timeout_secs": 180
+  },
+  "heartbeat": {
+    "enabled": false
+  },
+  "http_request": {
+    "enabled": false
+  },
+  "browser": {
+    "enabled": false
+  },
+  "security": {
+    "sandbox": {
+      "backend": "auto"
+    },
+    "resources": {
+      "max_memory_mb": 96,
+      "max_cpu_percent": 25,
+      "max_disk_mb": 256,
+      "max_cpu_time_seconds": 180,
+      "max_subprocesses": 4,
+      "memory_monitoring": true
+    },
+    "audit": {
+      "enabled": true,
+      "max_size_mb": 8,
+      "retention_days": 14
+    }
+  },
+  "secrets": {
+    "encrypt": true
+  },
+  "diagnostics": {
+    "backend": "log",
+    "log_tool_calls": true,
+    "log_llm_io": false,
+    "log_message_payloads": false
+  }
+}

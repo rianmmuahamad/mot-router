@@ -1,0 +1,58 @@
+{
+  "counts": {
+    "failed": 4,
+    "healthy": 0,
+    "pending": 0,
+    "total": 5,
+    "unsupported": 1
+  },
+  "paused": true,
+  "pause_reason": "Scan completed",
+  "jobs": [
+    {
+      "kind": "scan",
+      "state": "completed",
+      "processed": 4,
+      "ok": 0,
+      "failed": 4,
+      "unsupported": 0,
+      "error": ""
+    },
+    {
+      "kind": "import",
+      "state": "completed",
+      "processed": 5,
+      "ok": 0,
+      "failed": 0,
+      "unsupported": 1,
+      "error": ""
+    }
+  ],
+  "outcomes": [
+    {
+      "protocol": "vless",
+      "status": "failed",
+      "error": "protocol / verified HTTPS check failed"
+    },
+    {
+      "protocol": "vless",
+      "status": "failed",
+      "error": "protocol / verified HTTPS check failed"
+    },
+    {
+      "protocol": "vless",
+      "status": "failed",
+      "error": "protocol / verified HTTPS check failed"
+    },
+    {
+      "protocol": "vless",
+      "status": "unsupported",
+      "error": "Unmodeled URI connection option"
+    },
+    {
+      "protocol": "vless",
+      "status": "failed",
+      "error": "protocol / verified HTTPS check failed"
+    }
+  ]
+}

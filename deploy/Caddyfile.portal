@@ -1,0 +1,21 @@
+# Admin console. motgate enforces authentication on /admin and /api/admin/*.
+portal.coddx.store {
+	redir / /admin 302
+	reverse_proxy 127.0.0.1:8790 {
+		flush_interval -1
+		transport http {
+			read_timeout 0
+		}
+	}
+}
+
+# Public Arbyte landing page, per-user status pages, and user API.
+arbyte.coddx.store {
+	encode gzip
+	reverse_proxy 127.0.0.1:8790 {
+		flush_interval -1
+		transport http {
+			read_timeout 0
+		}
+	}
+}

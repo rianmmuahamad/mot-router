@@ -64,7 +64,7 @@ func TestReplayFirstPreservesFirstEvent(t *testing.T) {
 	rest <- zen.Event{Type: "response.completed"}
 	close(rest)
 
-	out := replayFirst(zen.Event{Type: "response.created"}, rest)
+	out := replayFirst(context.Background(), zen.Event{Type: "response.created"}, rest)
 
 	var got []string
 	for ev := range out {

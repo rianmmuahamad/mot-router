@@ -1,0 +1,46 @@
+{
+  "verified_at_wib": "2026-10-14T05:27:39.944415+07:00",
+  "build": {
+    "cgo_enabled": false,
+    "sha256": "d8a3f54b206a55928746f546fee7692c0d474a32862f1f3cc8c58ce073dc3d47"
+  },
+  "tests": {
+    "root_go_suite": "passed",
+    "static_proxy_regression": "passed",
+    "local_tls_cases": 9,
+    "dashboard_javascript_syntax": "passed"
+  },
+  "deployment": {
+    "backup": "/var/backups/mot-router/20261013T222716Z-proxy-probe",
+    "router_api_http": 200,
+    "initial_dynamic_build_incompatible": true,
+    "previous_service_restored_before_static_rollout": true
+  },
+  "live_probe": {
+    "node": "DIRECT",
+    "before_node": "DIRECT",
+    "after_node": "DIRECT",
+    "group": "MOT",
+    "egress_ip": "43.159.58.17",
+    "status": 200,
+    "elapsed_ms": 1297,
+    "model": "muse-spark-1.3-contributor-free",
+    "proxy_ok": true,
+    "zen_ok": true,
+    "rotated": false,
+    "tools_injected": 2
+  },
+  "dashboard_updated": true,
+  "services": {
+    "mot-router": "active",
+    "motgate": "active",
+    "guard": "active",
+    "mot-nodebank": "active",
+    "mot-nodebank-runtime": "active",
+    "mot-dashboard": "active",
+    "mot-cftunnel": "active",
+    "caddy": "active",
+    "arbyte-agent": "active"
+  },
+  "limits": "One live request on current DIRECT node; original reported 403 was not reproduced. No mass proxy tests and no new rotation behavior for access denials."
+}

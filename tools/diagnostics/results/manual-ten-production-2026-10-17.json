@@ -1,0 +1,311 @@
+{
+  "at": "2026-10-17T00:56:04.458644+00:00",
+  "before": {
+    "mot-router": 17712,
+    "mot-nodebank-runtime": 25184
+  },
+  "pool_config_before": {
+    "enabled": true,
+    "parallelism": 1
+  },
+  "phases": [
+    {
+      "action": "test",
+      "before_node": "NB-e9072958b148b099e3cac07b",
+      "after_node": "NB-e9072958b148b099e3cac07b",
+      "result": {
+        "candidate_count": 10,
+        "checked_count": 10,
+        "elapsed_ms": 13548,
+        "from": "NB-e9072958b148b099e3cac07b",
+        "group": "MOT",
+        "healthy_count": 9,
+        "hint": "Tes selesai; pilihan node MOT tidak diubah",
+        "mode": "parallel_nodes",
+        "model": "deepseek-v4.1-flash-free",
+        "ok": true,
+        "parallelism": 10,
+        "previous_ip": "2001:19f0:7001:7bb:5400:6ff:fe1b:e433",
+        "requested_parallelism": 10,
+        "results": [
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-15866765f722fda74acb5f1b",
+            "ip": "128.199.254.13",
+            "at": "2026-10-17T08:56:05.778377457+08:00",
+            "result": "transport",
+            "status": 0,
+            "latency_ms": 1250,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-7160466ff16219d729f385e9",
+            "ip": "3.0.111.82",
+            "at": "2026-10-17T08:56:06.505278567+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 1980,
+            "input_tokens": 595,
+            "output_tokens": 22,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-1efca7092198625302471ef0",
+            "ip": "139.180.146.200",
+            "at": "2026-10-17T08:56:06.859646496+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 2317,
+            "input_tokens": 595,
+            "output_tokens": 22,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-278cafbf9f253760003cce57",
+            "ip": "139.162.27.96",
+            "at": "2026-10-17T08:56:06.911832183+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 2389,
+            "input_tokens": 595,
+            "output_tokens": 22,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-ba34d586e9cef4e82685a9b8",
+            "ip": "149.88.23.202",
+            "at": "2026-10-17T08:56:06.95229084+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 2407,
+            "input_tokens": 595,
+            "output_tokens": 4,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-43b43d715f6336de31eff665",
+            "ip": "45.118.133.249",
+            "at": "2026-10-17T08:56:07.161502133+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 2621,
+            "input_tokens": 595,
+            "output_tokens": 20,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-aef1b4279522e9a0ded58566",
+            "ip": "154.26.139.24",
+            "at": "2026-10-17T08:56:09.189112209+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 4654,
+            "input_tokens": 595,
+            "output_tokens": 22,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-9bb70cdab48d024179194f6a",
+            "ip": "149.88.23.207",
+            "at": "2026-10-17T08:56:09.444058504+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 4914,
+            "input_tokens": 595,
+            "output_tokens": 22,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-572365d16edaf0ac2764e6df",
+            "ip": "54.169.200.246",
+            "at": "2026-10-17T08:56:10.117410274+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 5585,
+            "input_tokens": 595,
+            "output_tokens": 22,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-a240bf858617c2f573e90371",
+            "ip": "52.221.223.83",
+            "at": "2026-10-17T08:56:18.018773412+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 13469,
+            "input_tokens": 595,
+            "output_tokens": 22,
+            "identity": "dd81fb3a4b46aa36"
+          }
+        ],
+        "rotated": false
+      },
+      "peak_combined_rss_kib": 52888
+    },
+    {
+      "action": "rotate",
+      "before_node": "NB-e9072958b148b099e3cac07b",
+      "after_node": "NB-a240bf858617c2f573e90371",
+      "result": {
+        "candidate_count": 10,
+        "checked_count": 10,
+        "egress_ip": "52.221.223.83",
+        "elapsed_ms": 11322,
+        "from": "NB-e9072958b148b099e3cac07b",
+        "group": "MOT",
+        "healthy_count": 10,
+        "ip_changed": true,
+        "mode": "parallel_nodes",
+        "model": "deepseek-v4.1-flash-free",
+        "node": "NB-a240bf858617c2f573e90371",
+        "ok": true,
+        "parallelism": 10,
+        "previous_ip": "2001:19f0:7001:7bb:5400:6ff:fe1b:e433",
+        "requested_parallelism": 10,
+        "results": [
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-a240bf858617c2f573e90371",
+            "ip": "52.221.223.83",
+            "at": "2026-10-17T08:56:20.072803494+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 1993,
+            "input_tokens": 595,
+            "output_tokens": 22,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-f3f307948be4b815f64be007",
+            "ip": "104.28.160.175",
+            "at": "2026-10-17T08:56:20.214148729+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 2114,
+            "input_tokens": 595,
+            "output_tokens": 22,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-aef1b4279522e9a0ded58566",
+            "ip": "154.26.139.24",
+            "at": "2026-10-17T08:56:20.230843529+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 2129,
+            "input_tokens": 595,
+            "output_tokens": 17,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-ba34d586e9cef4e82685a9b8",
+            "ip": "149.88.23.202",
+            "at": "2026-10-17T08:56:20.586692726+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 2517,
+            "input_tokens": 595,
+            "output_tokens": 27,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-1efca7092198625302471ef0",
+            "ip": "139.180.146.200",
+            "at": "2026-10-17T08:56:20.610470584+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 2537,
+            "input_tokens": 595,
+            "output_tokens": 24,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-572365d16edaf0ac2764e6df",
+            "ip": "54.169.200.246",
+            "at": "2026-10-17T08:56:21.715429352+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 3633,
+            "input_tokens": 595,
+            "output_tokens": 22,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-9bb70cdab48d024179194f6a",
+            "ip": "149.88.23.207",
+            "at": "2026-10-17T08:56:23.326828906+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 5249,
+            "input_tokens": 595,
+            "output_tokens": 22,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-278cafbf9f253760003cce57",
+            "ip": "139.162.27.96",
+            "at": "2026-10-17T08:56:26.50460963+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 8416,
+            "input_tokens": 595,
+            "output_tokens": 17,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-7160466ff16219d729f385e9",
+            "ip": "3.0.111.82",
+            "at": "2026-10-17T08:56:26.57079768+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 8485,
+            "input_tokens": 595,
+            "output_tokens": 13,
+            "identity": "dd81fb3a4b46aa36"
+          },
+          {
+            "model": "deepseek-v4.1-flash-free",
+            "node": "NB-43b43d715f6336de31eff665",
+            "ip": "45.118.133.249",
+            "at": "2026-10-17T08:56:29.328371222+08:00",
+            "result": "healthy",
+            "status": 200,
+            "latency_ms": 11237,
+            "input_tokens": 595,
+            "output_tokens": 20,
+            "identity": "dd81fb3a4b46aa36"
+          }
+        ],
+        "rotated": true
+      },
+      "peak_combined_rss_kib": 53476
+    }
+  ],
+  "after": {
+    "mot-router": 24932,
+    "mot-nodebank-runtime": 28888
+  },
+  "pool_config_after": {
+    "enabled": true,
+    "parallelism": 1
+  }
+}

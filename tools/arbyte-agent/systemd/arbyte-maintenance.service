@@ -1,0 +1,20 @@
+[Unit]
+Description=Arbyte bounded NodeBank maintenance and VPS monitoring
+After=mot-nodebank.service
+
+[Service]
+Type=oneshot
+User=arbyte-agent
+Group=arbyte-agent
+ExecStart=/usr/local/bin/arbytectl maintain
+UMask=0077
+TimeoutStartSec=60
+MemoryMax=64M
+CPUQuota=20%
+Nice=10
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/arbyte-agent/ops
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true

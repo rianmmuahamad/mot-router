@@ -1,0 +1,30 @@
+# Replace EXISTING_MOT_BCRYPT with the existing rian hash from mot.coddx.store.
+# Cloudflare proxied DNS, using the same origin TLS policy as mot.coddx.store.
+proxy.coddx.store {
+	tls internal
+	route {
+		@compressible not path /api/events
+		encode @compressible gzip
+		basic_auth {
+			rian EXISTING_MOT_BCRYPT
+		}
+		@foreign_origin {
+			header Origin *
+			not header Origin https://proxy.coddx.store
+		}
+		respond @foreign_origin "Forbidden origin" 403
+		@cross_site header Sec-Fetch-Site cross-site
+		respond @cross_site "Forbidden site" 403
+		@private path /api/runtime/*
+		respond @private "Not found" 404
+		reverse_proxy 127.0.0.1:8792 {
+			# Only same-origin requests reach this rewrite. Preserve the local
+			# application's loopback guard without accepting arbitrary origins.
+			header_up Host 127.0.0.1:8792
+			header_up Origin http://127.0.0.1:8792
+			header_up -Authorization
+			header_up -X-NodeBank-Runtime
+			flush_interval -1
+		}
+	}
+}

@@ -1,0 +1,99 @@
+{
+  "started_at": "2026-10-16T22:05:21.449394+00:00",
+  "before": {
+    "router_VmRSS_kib": 11044,
+    "router_VmHWM_kib": 11044,
+    "runtime_VmRSS_kib": 25724,
+    "runtime_VmHWM_kib": 26256
+  },
+  "phases": [
+    {
+      "parallelism": 1,
+      "model": "muse-spark-1.3-contributor-free",
+      "before": {
+        "router_VmRSS_kib": 11424,
+        "router_VmHWM_kib": 11424,
+        "runtime_VmRSS_kib": 25724,
+        "runtime_VmHWM_kib": 26256
+      },
+      "sample_completed": true,
+      "sample_usage": {
+        "input_tokens": 2772,
+        "output_tokens": 45
+      },
+      "budget_used": 1,
+      "ready": [],
+      "results": [
+        {
+          "model": "muse-spark-1.3-contributor-free",
+          "node": "NB-1efca7092198625302471ef0",
+          "ip": "139.180.146.200",
+          "at": "2026-10-17T06:05:24.088802696+08:00",
+          "result": "rate_limit",
+          "status": 429,
+          "latency_ms": 733,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "identity": "d7c457de467596f8"
+        }
+      ],
+      "policy": {
+        "last_used": "2026-10-17T06:05:21.486035962+08:00",
+        "last_batch": "2026-10-17T06:05:23.348918559+08:00",
+        "cooldown_until": "2026-10-17T08:00:01.088802696+08:00",
+        "reason": "rate_limit"
+      },
+      "peak_rss_kib": 44064,
+      "after": {
+        "router_VmRSS_kib": 17572,
+        "router_VmHWM_kib": 17572,
+        "runtime_VmRSS_kib": 26492,
+        "runtime_VmHWM_kib": 26492
+      }
+    }
+  ],
+  "after": {
+    "router_VmRSS_kib": 17572,
+    "router_VmHWM_kib": 17572,
+    "runtime_VmRSS_kib": 26492,
+    "runtime_VmHWM_kib": 26492
+  },
+  "final": {
+    "audit": [
+      {
+        "model": "muse-spark-1.3-contributor-free",
+        "node": "NB-1efca7092198625302471ef0",
+        "ip": "139.180.146.200",
+        "at": "2026-10-17T06:05:24.088802696+08:00",
+        "result": "rate_limit",
+        "status": 429,
+        "latency_ms": 733,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "identity": "d7c457de467596f8"
+      }
+    ],
+    "available_memory_mib": 1287,
+    "batch": null,
+    "budget_limit": 120,
+    "budget_used": 1,
+    "config": {
+      "enabled": true,
+      "parallelism": 10
+    },
+    "models": {
+      "muse-spark-1.3-contributor-free": {
+        "last_used": "2026-10-17T06:05:21.486035962+08:00",
+        "last_batch": "2026-10-17T06:05:23.348918559+08:00",
+        "cooldown_until": "2026-10-17T08:00:01.088802696+08:00",
+        "reason": "rate_limit"
+      }
+    },
+    "pause_reason": "",
+    "quota_accounting": "operational probes; not customer requests",
+    "ready": [],
+    "target_per_model": 3,
+    "ttl_seconds": 900,
+    "vantage": "vps"
+  }
+}

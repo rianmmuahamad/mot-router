@@ -1,0 +1,7 @@
+{
+  "model": "deepseek-v4.1-flash-free",
+  "egress": "VPS current NodeBank node via SSH forward",
+  "version": "opencode v2.0.29",
+  "ok": false,
+  "error": "Official client did not complete within 45 seconds"
+}

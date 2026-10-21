@@ -1,0 +1,42 @@
+{
+  "user_agent": "opencode/latest/2.0.29/cli",
+  "client_format": "v2",
+  "requests": [
+    {
+      "model": "glm-5.3-flash-free",
+      "text": "GLM_REF_OK",
+      "done": true,
+      "finished": true,
+      "actual_models": [
+        "glm-5.3-flash-free"
+      ],
+      "omp_tools": 11,
+      "status": 200,
+      "usage": {
+        "prompt_tokens": 13587,
+        "completion_tokens": 24,
+        "total_tokens": 13611
+      },
+      "elapsed_ms": 2056,
+      "ok": true
+    },
+    {
+      "model": "deepseek-v4.1-flash-free",
+      "text": "DEEPSEEK_REF_OK",
+      "done": true,
+      "finished": true,
+      "actual_models": [
+        "deepseek-v4.1-flash-free"
+      ],
+      "omp_tools": 11,
+      "status": 200,
+      "usage": {
+        "prompt_tokens": 14227,
+        "completion_tokens": 8,
+        "total_tokens": 14235
+      },
+      "elapsed_ms": 3753,
+      "ok": true
+    }
+  ]
+}

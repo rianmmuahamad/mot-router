@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "stdout": "{\"type\":\"text\",\"timestamp\":1792216732631,\"sessionID\":\"ses_eb78effb4ffeSHaZuR6Bl5t1fD\",\"part\":{\"id\":\"prt_1487109b70012715Lz0GEreTnU_text-0\",\"sessionID\":\"ses_eb78effb4ffeSHaZuR6Bl5t1fD\",\"messageID\":\"msg_1487109b70012715Lz0GEreTnU\",\"type\":\"text\",\"text\":\"NATIVE_OK\",\"time\":{\"start\":1792216730099,\"end\":1792216732631}}}\n",
+  "stderr": ""
+}

@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -50,6 +52,9 @@ func (s *Server) mihomoClient() *mihomo.Client {
 		proxy = defaultMihomoProxy
 	}
 	secret := s.store.GetSetting(settingMihomoSecret)
+	if nodeBankRuntimeEnabled() {
+		controller, proxy, secret = "http://127.0.0.1:9093", "http://127.0.0.1:7893", ""
+	}
 
 	s.mihomoMu.Lock()
 	defer s.mihomoMu.Unlock()
@@ -65,6 +70,8 @@ func (s *Server) mihomoClient() *mihomo.Client {
 	return s.mihomoCached
 }
 
+func nodeBankRuntimeEnabled() bool { return os.Getenv("MOT_NODEBANK_RUNTIME") == "1" }
+
 // mihomoEnabled reports whether requests should be routed through the proxy.
 func (s *Server) mihomoEnabled() bool {
 	return s.store.GetSetting(settingMihomoEnabled) == "1"
@@ -78,6 +85,9 @@ func (s *Server) mihomoRotateOnLimit() bool {
 
 // mihomoGroup returns the configured group, or the first Selector group.
 func (s *Server) mihomoGroup(ctx context.Context, c *mihomo.Client) (string, error) {
+	if nodeBankRuntimeEnabled() {
+		return "MOT", nil
+	}
 	if g := s.store.GetSetting(settingMihomoGroup); g != "" {
 		return g, nil
 	}
@@ -204,89 +214,15 @@ func isUpstreamOverloaded(status int, detail string) bool {
 // condition: a per-IP rate limit, a region block, a dropped connection, or a
 // saturated backend.
 func shouldRotate(status int, detail string) bool {
-	return isRateLimited(status, detail) ||
-		isRegionBlocked(status, detail) ||
-		isTransportFailure(status, detail) ||
-		isUpstreamOverloaded(status, detail)
+	// Usage and region policies are not evidence of a broken exit path.
+	if isRateLimited(status, detail) || status == 401 || status == 403 {
+		return false
+	}
+	return isTransportFailure(status, detail) || isUpstreamOverloaded(status, detail)
 }
 
-// ipTiedFailure reports whether a failure follows the exit IP, so repeating the
-// request against the same node cannot succeed.
-//
-// A rate limit or a region block is decided from the address the request came
-// from. A dropped connection or a saturated backend is transient instead, and
-// the same node often serves the next attempt.
-func ipTiedFailure(status int, detail string) bool {
-	return isRateLimited(status, detail) || isRegionBlocked(status, detail)
-}
-
-// rotateMihomoNode advances to the next healthy node in the group.
-//
-// It deliberately does NOT verify the new egress IP itself. Doing so costs a
-// wait plus an external HTTP call per candidate, which made a rotation take tens
-// of seconds when several nodes shared one address. The caller retries the real
-// request instead, and that retry is the authoritative check: if the new node is
-// still limited, the caller rotates again.
-//
-// Returning promptly also matters because rotation happens inline with a client
-// request, so every millisecond here is latency the user sees.
-func (s *Server) rotateMihomoNode(ctx context.Context, c *mihomo.Client, group string) (string, string, error) {
-	mihomoMu.Lock()
-	defer mihomoMu.Unlock()
-
-	all, err := c.AllProxies(ctx)
-	if err != nil {
-		return "", "", err
-	}
-	g, ok := all[group]
-	if !ok {
-		return "", "", fmt.Errorf("group %q tidak ditemukan", group)
-	}
-
-	nodes := leafNodes(g, all)
-	if len(nodes) == 0 {
-		return "", "", fmt.Errorf("group %q tidak punya node sehat", group)
-	}
-
-	// Prefer nodes that have not recently been rejected.
-	//
-	// mihomo's health check only proves the tunnel carries traffic; it cannot
-	// know that Zen rate limits this particular exit. A node can therefore be
-	// "healthy" while being useless. Without this filter a group of two — one
-	// working, one limited — made rotation bounce onto the dead one and the
-	// request fail, measured as 12 consecutive 429s.
-	if avoid := s.penalizedNodes(group); len(avoid) > 0 {
-		clean := make([]string, 0, len(nodes))
-		for _, n := range nodes {
-			if !avoid[n] {
-				clean = append(clean, n)
-			}
-		}
-		// Only honour the penalty when something else is available; otherwise
-		// the penalty would leave nowhere to go.
-		if len(clean) > 0 {
-			nodes = clean
-		}
-	}
-
-	// Walk forward from the current node so consecutive rotations explore the
-	// list instead of bouncing between two entries.
-	next := nodes[0]
-	for i, n := range nodes {
-		if n == g.Now {
-			next = nodes[(i+1)%len(nodes)]
-			break
-		}
-	}
-
-	if err := c.Select(ctx, group, next); err != nil {
-		return "", "", err
-	}
-	// Pooled connections terminate at the previous exit node; reusing one fails
-	// with "unexpected EOF".
-	c.ResetConnections()
-	return g.Now, next, nil
-}
+// Policy denials never justify an IP penalty or an IP switch.
+func ipTiedFailure(status int, detail string) bool { return false }
 
 // leafNodes filters a group's entries down to usable proxy nodes.
 //
@@ -353,13 +289,14 @@ func leafNodes(g mihomo.Group, all map[string]mihomo.Group) []string {
 
 // mihomoStatus is the dashboard view.
 type mihomoStatus struct {
-	Enabled   bool   `json:"enabled"`
-	Reachable bool   `json:"reachable"`
-	Version   string `json:"version"`
-	Group     string `json:"group"`
-	Node      string `json:"node"`
-	EgressIP  string `json:"egress_ip"`
-	Rotate    bool   `json:"rotate_on_limit"`
+	NativeStatus map[string]any `json:"native_status,omitempty"`
+	Enabled      bool           `json:"enabled"`
+	Reachable    bool           `json:"reachable"`
+	Version      string         `json:"version"`
+	Group        string         `json:"group"`
+	Node         string         `json:"node"`
+	EgressIP     string         `json:"egress_ip"`
+	Rotate       bool           `json:"rotate_on_limit"`
 	// Controller and Proxy are the endpoints in use, so the dashboard can show
 	// the configured values instead of guessing.
 	Controller string `json:"controller"`
@@ -370,12 +307,38 @@ type mihomoStatus struct {
 	QuotaExhausted bool `json:"quota_exhausted,omitempty"`
 	// Groups lists the selectable groups with their node counts.
 	Groups []mihomoGroupView `json:"groups"`
+	// NodeBankGeneratedAt describes the laptop snapshot, not a VPS health check.
+	NodeBankGeneratedAt int64 `json:"nodebank_generated_at,omitempty"`
 }
 
 type mihomoGroupView struct {
-	Name  string `json:"name"`
-	Now   string `json:"now"`
-	Nodes int    `json:"nodes"`
+	ValidatedIPs     []string `json:"validated_ips,omitempty"`
+	Name             string   `json:"name"`
+	Now              string   `json:"now"`
+	Nodes            int      `json:"nodes"`
+	Selectable       bool     `json:"selectable"`
+	NodeBankIPs      []string `json:"nodebank_ips,omitempty"`
+	NodeBankReceived int64    `json:"nodebank_received_at,omitempty"`
+}
+
+func withNodeBankCandidates(groups []mihomoGroupView, ips []string, received int64) []mihomoGroupView {
+	if len(ips) == 0 {
+		return groups
+	}
+	for i := range groups {
+		if strings.EqualFold(groups[i].Name, "MOT") {
+			groups[i].NodeBankIPs = ips
+			groups[i].NodeBankReceived = received
+			return groups
+		}
+	}
+	// Keep the candidates visible under the requested MOT group even when the
+	// active proxy runtime does not yet have a selector with that name. It is
+	// deliberately non-selectable and has zero healthy runtime nodes.
+	return append(groups, mihomoGroupView{
+		Name: "MOT", Now: "belum aktif di runtime", Selectable: false,
+		NodeBankIPs: ips, NodeBankReceived: received,
+	})
 }
 
 // handleMihomoStatus reports the integration state.
@@ -391,33 +354,66 @@ func (s *Server) handleMihomoStatus(w http.ResponseWriter, r *http.Request) {
 		Controller: c.ControllerURL,
 		Proxy:      c.ProxyURL,
 	}
+	bankIPs, bankReceived, bankErr := nodeBankIPs(s.dataDir)
+	if bankErr == nil {
+		st.NodeBankGeneratedAt = bankReceived
+	}
 
 	version, err := c.Version(ctx)
 	if err != nil {
 		st.Error = err.Error()
+		st.Groups = withNodeBankCandidates(st.Groups, bankIPs, bankReceived)
 		writeJSON(w, http.StatusOK, st)
 		return
 	}
 	st.Reachable = true
 	st.Version = version
+	native := strings.HasPrefix(version, "nodebank-native/")
+	if native {
+		st.NativeStatus, _ = c.RuntimeStatus(ctx)
+		bankIPs = nil
+	}
 
 	all, err := c.AllProxies(ctx)
 	if err == nil {
 		groups, _ := c.SelectorGroups(ctx)
+		if native && len(groups) == 0 {
+			if mot, ok := all["MOT"]; ok {
+				groups = append(groups, mot)
+			}
+		}
 		for _, g := range groups {
 			// Count real proxies only: a group's list can include references to
 			// other groups, which are not switchable egress targets.
-			st.Groups = append(st.Groups, mihomoGroupView{
-				Name: g.Name, Now: g.Now, Nodes: len(leafNodes(g, all)),
-			})
+			view := mihomoGroupView{
+				Name: g.Name, Now: g.Now, Nodes: len(leafNodes(g, all)), Selectable: true,
+			}
+			if native {
+				seen := map[string]bool{}
+				for _, name := range leafNodes(g, all) {
+					if ip := all[name].ExitIP; name != "DIRECT" && ip != "" && !seen[ip] {
+						view.ValidatedIPs = append(view.ValidatedIPs, ip)
+						seen[ip] = true
+					}
+				}
+			}
+			st.Groups = append(st.Groups, view)
 		}
 	}
+	st.Groups = withNodeBankCandidates(st.Groups, bankIPs, bankReceived)
 
 	if group, err := s.mihomoGroup(ctx, c); err == nil {
 		st.Group = group
 		if cur, err := c.Current(ctx, group); err == nil {
 			st.Node = cur
+			if native {
+				st.EgressIP = all[cur].ExitIP
+			}
 		}
+	}
+	if native {
+		writeJSON(w, http.StatusOK, st)
+		return
 	}
 	if ip, err := c.EgressIP(ctx); err == nil {
 		st.EgressIP = ip
@@ -548,25 +544,30 @@ func (s *Server) handleMihomoRotate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	beforeNode := ""
-	if cur, err := c.Current(ctx, group); err == nil {
-		beforeNode = cur
-	}
-	beforeIP, node, err := s.rotateMihomoNode(ctx, c, group)
+	rotation, err := s.rotateMihomoNodeResult(ctx, c, group)
 	if err != nil {
-		writeAPIError(w, http.StatusBadGateway, err.Error(), "mihomo_error")
+		status := http.StatusBadGateway
+		if errors.Is(err, mihomo.ErrSelectionChanged) || errors.Is(err, errNoAlternativeExit) {
+			status = http.StatusConflict
+		}
+		writeAPIError(w, status, err.Error(), "mihomo_error")
 		return
 	}
-
+	if nodeBankRuntimeEnabled() {
+		ctx = mihomo.WithNode(ctx, rotation.Node)
+	}
 	ip, _ := c.EgressIP(ctx)
+	ip = canonicalExitIP(ip)
+	verified := rotation.PreviousIP != "" && ip != ""
 	out := map[string]any{
-		"ok":          true,
-		"group":       group,
-		"from":        beforeNode,
-		"node":        node,
-		"egress_ip":   ip,
-		"previous_ip": beforeIP,
-		"ip_changed":  beforeIP != "" && ip != "" && ip != beforeIP,
+		"ok":                 true,
+		"group":              group,
+		"from":               rotation.From,
+		"node":               rotation.Node,
+		"egress_ip":          ip,
+		"previous_ip":        rotation.PreviousIP,
+		"ip_changed":         verified && ip != rotation.PreviousIP,
+		"ip_change_verified": verified,
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -616,95 +617,28 @@ func (s *Server) handleMihomoSelect(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleMihomoTest verifies the proxy works and, optionally, that Zen accepts
-// the current egress IP.
-func (s *Server) handleMihomoTest(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
-	defer cancel()
-
-	c := s.mihomoClient()
-	out := map[string]any{}
-
-	ip, err := c.EgressIP(ctx)
-	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": err.Error()})
-		return
-	}
-	out["egress_ip"] = ip
-
-	// Send a real (tiny) request through the proxy so the answer reflects what
-	// the router will actually experience, not just whether the tunnel is up.
-	tools, _ := zenPrepareProbeTools()
-	body := map[string]any{
-		"model": s.DefaultModel(),
-		"input": []map[string]any{{
-			"role":    "user",
-			"content": []map[string]any{{"type": "input_text", "text": "hi"}},
-		}},
-		"max_output_tokens": 16,
-		"store":             false,
-		"stream":            true,
-		"tools":             tools,
-		"tool_choice":       "auto",
-	}
-
-	client := s.zen.WithHTTP(c.ProxyClient())
-	started := time.Now()
-	events, status, err := client.Stream(ctx, s.DefaultModel(), "mihomo-test", body)
-	out["elapsed_ms"] = time.Since(started).Milliseconds()
-	out["status"] = status
-
-	switch {
-	case err != nil:
-		out["ok"] = false
-		out["error"] = err.Error()
-		if isRegionBlocked(status, err.Error()) {
-			out["hint"] = "node ini di region yang tidak didukung Zen; ganti node"
-		}
-	case events != nil:
-		for range events {
-		}
-		out["ok"] = true
-	}
-
-	writeJSON(w, http.StatusOK, out)
-}
-
-// zenPrepareProbeTools builds the minimal tool set for a probe request.
-func zenPrepareProbeTools() ([]map[string]any, error) {
-	names := []string{"bash", "read"}
-	out := make([]map[string]any, 0, len(names))
-	for _, n := range names {
-		out = append(out, map[string]any{
-			"type": "function", "name": n, "description": "d",
-			"parameters": map[string]any{"type": "object", "properties": map[string]any{}},
-		})
-	}
-	return out, nil
-}
-
 // mihomoStreamZen sends a Zen request through mihomo and, on a per-IP rate limit
 // or a region block, rotates to a node with a different egress IP and retries.
 //
 // This is the path that makes the integration useful: Zen limits the free tier
 // per IP, so switching the exit node resets the limit. Retries are bounded
 // because a subscription can have every node sharing one address.
-func (s *Server) mihomoStreamZen(
+func (s *Server) mihomoStreamZenOnce(
 	ctx context.Context,
 	model, sessionSeed string,
 	body map[string]any,
 	rec requestRecord,
 ) (<-chan zen.Event, int, error, string) {
 	if !s.mihomoEnabled() {
-		events, status, err := s.zen.Stream(ctx, model, sessionSeed, body)
-		return events, status, err, ""
+		events, status, err, pool := s.streamZenWithRotation(ctx, model, sessionSeed, body, rec)
+		return events, status, err, describeRelay(pool)
 	}
 
 	c := s.mihomoClient()
 	group, err := s.mihomoGroup(ctx, c)
 	if err != nil {
-		events, status, streamErr := s.zen.Stream(ctx, model, sessionSeed, body)
-		return events, status, streamErr, ""
+		events, status, streamErr, pool := s.streamZenWithRotation(ctx, model, sessionSeed, body, rec)
+		return events, status, streamErr, describeRelay(pool)
 	}
 
 	client := s.zen.WithHTTP(c.ProxyClient())
@@ -732,6 +666,7 @@ func (s *Server) mihomoStreamZen(
 	deadline := time.Now().Add(retryBudget)
 	var lastErr error
 	lastStatus := 0
+	var attemptedNode string
 
 	// Retrying and rotating are separate concerns, so the operator's switch
 	// only controls the latter.
@@ -744,7 +679,7 @@ func (s *Server) mihomoStreamZen(
 
 	for attempt := range maxAttempts {
 		if attempt > 0 {
-			if !shouldRotate(lastStatus, lastErr.Error()) {
+			if !shouldRetryZen(lastStatus, lastErr) {
 				break
 			}
 			if time.Now().After(deadline) {
@@ -756,13 +691,16 @@ func (s *Server) mihomoStreamZen(
 			// but Zen rejects.
 			ipTied := ipTiedFailure(lastStatus, lastErr.Error())
 			if ipTied {
-				if cur, err := c.Current(ctx, group); err == nil {
-					s.penalizeNode(group, cur)
-				}
+				s.penalizeNode(group, attemptedNode)
 			}
 			if rotateEnabled {
-				if _, _, rotErr := s.rotateMihomoNode(ctx, c, group); rotErr != nil {
-					break
+				if _, _, rotErr := s.rotateMihomoNode(ctx, c, group, attemptedNode); rotErr != nil {
+					// A concurrent switch already chose a replacement, or only
+					// this exit remains. Retry the currently selected node within
+					// the same bounded budget; never overwrite a stale selection.
+					if !errors.Is(rotErr, mihomo.ErrSelectionChanged) && !errors.Is(rotErr, errNoAlternativeExit) {
+						break
+					}
 				}
 			} else if ipTied {
 				// Without rotation there is no new exit to try, and this failure
@@ -777,19 +715,27 @@ func (s *Server) mihomoStreamZen(
 		// generation. Stalls are caught by the header timeout and by
 		// firstEventWait instead, neither of which bounds the whole response.
 		attemptCtx, cancel := context.WithCancel(ctx)
+		attemptedNode, _ = c.Current(ctx, group)
+		if nodeBankRuntimeEnabled() && attemptedNode != "" {
+			attemptCtx = mihomo.WithNode(attemptCtx, attemptedNode)
+		}
 		events, status, err := client.Stream(attemptCtx, model, sessionSeed, body)
 		lastStatus = status
 		if err == nil {
 			first, rest, waitErr := streamFirst(attemptCtx, events, firstEventWait)
 			if waitErr == nil {
-				// This node works, so any earlier rejection is stale.
-				if cur, err := c.Current(ctx, group); err == nil {
-					s.clearNodePenalty(group, cur)
-				}
+				// A success does NOT clear an earlier rejection.
+				//
+				// Zen's limit is a budget over a multi-hour window, not a
+				// momentary refusal: an IP can answer one request and still be
+				// nearly exhausted. Forgetting the penalty here let rotation
+				// return to that IP, and the next burst hit the wall again.
+				// The penalty therefore expires only by time.
+				//
 				// Hand back a channel that replays the first event, so waiting
 				// for it here loses nothing for the caller. The context stays
 				// open for the life of the stream and is released with it.
-				return detachCancel(replayFirst(first, rest), cancel), status, nil, group
+				return detachCancel(attemptCtx, replayFirst(attemptCtx, first, rest), cancel), status, nil, "mihomo:" + group
 			}
 			err = waitErr
 		}
@@ -800,7 +746,10 @@ func (s *Server) mihomoStreamZen(
 	if lastErr == nil {
 		lastErr = fmt.Errorf("zen: tidak ada percobaan yang berhasil")
 	}
-	return nil, lastStatus, lastErr, group
+	if lastStatus < 400 {
+		lastStatus = http.StatusBadGateway
+	}
+	return nil, lastStatus, lastErr, "mihomo:" + group
 }
 
 // streamFirst waits for a stream's first event and reports a stall when none
@@ -816,11 +765,14 @@ func streamFirst(ctx context.Context, events <-chan zen.Event, d time.Duration) 
 	select {
 	case ev, ok := <-events:
 		if !ok {
-			return zen.Event{}, nil, fmt.Errorf("zen: stream ditutup sebelum ada event")
+			return zen.Event{}, nil, &initialStreamError{detail: "zen: stream ditutup sebelum ada event"}
+		}
+		if ev.Error != nil {
+			return zen.Event{}, nil, ev.Error
 		}
 		return ev, events, nil
 	case <-timer.C:
-		return zen.Event{}, nil, fmt.Errorf("zen: stream diam tanpa event selama %s", d)
+		return zen.Event{}, nil, &initialStreamError{detail: fmt.Sprintf("zen: stream diam tanpa event selama %s", d)}
 	case <-ctx.Done():
 		return zen.Event{}, nil, ctx.Err()
 	}
@@ -831,13 +783,25 @@ func streamFirst(ctx context.Context, events <-chan zen.Event, d time.Duration) 
 // The attempt context must stay alive for as long as the stream is being read,
 // but it must not leak afterwards: cancelling it at close time releases the
 // underlying connection without truncating the response.
-func detachCancel(in <-chan zen.Event, cancel context.CancelFunc) <-chan zen.Event {
+func detachCancel(ctx context.Context, in <-chan zen.Event, cancel context.CancelFunc) <-chan zen.Event {
 	out := make(chan zen.Event, 16)
 	go func() {
 		defer close(out)
 		defer cancel()
-		for ev := range in {
-			out <- ev
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case ev, ok := <-in:
+				if !ok {
+					return
+				}
+				select {
+				case out <- ev:
+				case <-ctx.Done():
+					return
+				}
+			}
 		}
 	}()
 	return out
@@ -845,13 +809,29 @@ func detachCancel(in <-chan zen.Event, cancel context.CancelFunc) <-chan zen.Eve
 
 // replayFirst re-emits first and then drains rest, so a stream can be inspected
 // for its first event without the caller losing it.
-func replayFirst(first zen.Event, rest <-chan zen.Event) <-chan zen.Event {
+func replayFirst(ctx context.Context, first zen.Event, rest <-chan zen.Event) <-chan zen.Event {
 	out := make(chan zen.Event, 16)
 	go func() {
 		defer close(out)
-		out <- first
-		for ev := range rest {
-			out <- ev
+		select {
+		case out <- first:
+		case <-ctx.Done():
+			return
+		}
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case ev, ok := <-rest:
+				if !ok {
+					return
+				}
+				select {
+				case out <- ev:
+				case <-ctx.Done():
+					return
+				}
+			}
 		}
 	}()
 	return out

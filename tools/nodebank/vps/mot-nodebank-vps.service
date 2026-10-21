@@ -1,0 +1,38 @@
+[Unit]
+Description=Mot NodeBank VPS dashboard and proxy bank
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+Slice=mot-nodebank.slice
+WorkingDirectory=/opt/mot-router/nodebank
+ExecStart=/opt/mot-router/nodebank/runtime/ld-linux-x86-64.so.2 --library-path /opt/mot-router/nodebank/runtime /opt/mot-router/nodebank/mot-nodebank --data /opt/mot-router/data/nodebank serve --bind 127.0.0.1:8792 --worker /opt/mot-router/nodebank/nodebank-probe-runner
+Restart=on-failure
+RestartSec=5
+UMask=0077
+Environment=GOMAXPROCS=2
+Environment=GOMEMLIMIT=96MiB
+MemoryAccounting=true
+MemoryHigh=256M
+MemoryMax=384M
+MemorySwapMax=0
+CPUAccounting=true
+CPUQuota=100%
+TasksMax=64
+LimitNOFILE=4096
+Nice=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ReadWritePaths=/opt/mot-router/data/nodebank
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+KillMode=control-group
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

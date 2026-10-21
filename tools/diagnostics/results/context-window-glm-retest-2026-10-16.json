@@ -1,0 +1,24 @@
+{
+  "measurement": "Mot Router -> OpenCode Zen free IDs",
+  "created_at_utc": "2026-10-16T11:00:25Z",
+  "target_input_tokens": 1005000,
+  "results": [
+    {
+      "model": "glm-5.3-flash-free",
+      "repetitions": 1024,
+      "request_bytes": 2454,
+      "http_status": 429,
+      "error": "{\"error\":{\"message\":\"{\\\"error\\\":{\\\"type\\\":\\\"server_error\\\",\\\"message\\\":\\\"Upstream request failed: Endpoint is unavailable.\\\"}}\",\"type\":\"upstream_error\"},\"type\":\"error\"}\n",
+      "elapsed_s": 11.61,
+      "usage": null,
+      "stream_done": false,
+      "text": "",
+      "markers_found": [
+        false,
+        false,
+        false
+      ],
+      "accepted": false
+    }
+  ]
+}

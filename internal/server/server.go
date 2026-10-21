@@ -3,14 +3,17 @@
 package server
 
 import (
+	"bufio"
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -31,12 +34,14 @@ const (
 	ProviderZen         = "opencode-zen"
 	ProviderTokenHarbor = "tokenharbor"
 	ProviderCline       = "cline"
+	ProviderCodeBuddy   = "codebuddy"
 )
 
 // Config holds runtime configuration.
 type Config struct {
 	Host         string
 	Port         int
+	DataDir      string
 	DefaultModel string
 	UpstreamKey  string
 	// DefaultProvider selects the upstream when a request does not name one.
@@ -45,9 +50,10 @@ type Config struct {
 
 // Server holds the wired dependencies.
 type Server struct {
-	cfg         Config
-	store       *store.Store
-	zen         *zen.Client
+	cfg     Config
+	store   *store.Store
+	zen     *zen.Client
+	dataDir string
 	// gate caches the probed upstream request shape. It is refreshed in the
 	// background so a change upstream is absorbed without a restart.
 	gate *gate.Cache
@@ -67,13 +73,39 @@ type Server struct {
 	// useless to us, so mihomo's own health check cannot filter it. Recording
 	// the rejection here lets rotation skip it for a while.
 	nodePenalty map[string]time.Time
+
+	// exitIPMu guards the node→exit-IP map read from the ipfarm state file.
+	exitIPMu    sync.Mutex
+	exitIPCache map[string]string
+	exitIPAt    time.Time
 }
+
+// exitIPCacheTTL bounds how stale the node→exit-IP map may be.
+const exitIPCacheTTL = 30 * time.Second
+
+// defaultIpFarmState is where ipfarm writes the node table when no override is
+// configured.
+const defaultIpFarmState = "/var/lib/ipfarm/state.tsv"
+
+// settingIpFarmState overrides the path of the ipfarm state file.
+const settingIpFarmState = "ipfarm_state"
 
 // nodePenaltyTTL is how long a rejected node is avoided.
 //
-// Long enough to move past a rate-limited exit, short enough that a node which
-// recovers is usable again without a restart.
-const nodePenaltyTTL = 10 * time.Minute
+// Zen's free tier rate limit follows the exit IP and lasts for hours, not
+// minutes: an IP that has exhausted its budget stays refused for the rest of
+// the window. The earlier 10-minute value was thirty times too short, so
+// rotation walked straight back onto a still-limited IP, collected another
+// rejection, and repeated — burning the client's time on known-losing requests
+// while adding load upstream.
+//
+// Five hours matches the observed window. It is configurable through
+// `node_penalty_minutes` so an operator can tune it without a rebuild when the
+// upstream window changes.
+const nodePenaltyTTL = 5 * time.Hour
+
+// settingNodePenaltyMinutes overrides nodePenaltyTTL when set.
+const settingNodePenaltyMinutes = "node_penalty_minutes"
 
 // penalizeNode records that a node failed in an IP-bound way.
 func (s *Server) penalizeNode(group, node string) {
@@ -88,15 +120,29 @@ func (s *Server) penalizeNode(group, node string) {
 	s.nodePenalty[group+"|"+node] = time.Now()
 }
 
+// penaltyTTL returns how long a rejected node is avoided, honouring the
+// `node_penalty_minutes` setting when present.
+func (s *Server) penaltyTTL() time.Duration {
+	if s.store != nil {
+		if v := s.store.GetSetting(settingNodePenaltyMinutes); v != "" {
+			if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil && n > 0 {
+				return time.Duration(n) * time.Minute
+			}
+		}
+	}
+	return nodePenaltyTTL
+}
+
 // penalizedNodes returns the nodes of a group currently being avoided.
 func (s *Server) penalizedNodes(group string) map[string]bool {
 	s.nodeMu.Lock()
 	defer s.nodeMu.Unlock()
 	out := map[string]bool{}
 	now := time.Now()
+	ttl := s.penaltyTTL()
 	for k, at := range s.nodePenalty {
 		// Expire lazily so the map does not grow without bound.
-		if now.Sub(at) > nodePenaltyTTL {
+		if now.Sub(at) > ttl {
 			delete(s.nodePenalty, k)
 			continue
 		}
@@ -107,14 +153,76 @@ func (s *Server) penalizedNodes(group string) map[string]bool {
 	return out
 }
 
-// clearNodePenalty forgets a node's rejection, called after it succeeds.
-func (s *Server) clearNodePenalty(group, node string) {
-	if node == "" {
-		return
+// nodeIPPenalized reports whether a node is backed by an exit IP that is
+// currently penalised under a different node name.
+//
+// Zen rate limits the exit IP, not the node label. Two nodes behind one IP are
+// therefore equally unusable, and skipping only the exact name would let
+// rotation walk onto the sibling and collect the same rejection. The node→IP
+// mapping comes from the ipfarm state file, which records each node's observed
+// egress address; with no state available the check degrades to per-node
+// filtering, which is still correct but weaker.
+func (s *Server) nodeIPPenalized(group, node string, avoid map[string]bool) bool {
+	ips := s.nodeExitIPs()
+	if len(ips) == 0 {
+		return false
 	}
-	s.nodeMu.Lock()
-	defer s.nodeMu.Unlock()
-	delete(s.nodePenalty, group+"|"+node)
+	ip := ips[node]
+	if ip == "" {
+		return false
+	}
+	for name := range avoid {
+		if ips[name] == ip {
+			return true
+		}
+	}
+	return false
+}
+
+// nodeExitIPs maps emitted node names to their observed exit IP, read from the
+// ipfarm state file. The result is cached briefly because rotation runs inline
+// with a client request.
+func (s *Server) nodeExitIPs() map[string]string {
+	s.exitIPMu.Lock()
+	defer s.exitIPMu.Unlock()
+	if s.exitIPCache != nil && time.Since(s.exitIPAt) < exitIPCacheTTL {
+		return s.exitIPCache
+	}
+
+	path := ""
+	if s.store != nil {
+		path = s.store.GetSetting(settingIpFarmState)
+	}
+	if path == "" {
+		path = defaultIpFarmState
+	}
+	out := map[string]string{}
+	if f, err := os.Open(path); err == nil {
+		sc := bufio.NewScanner(f)
+		sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+		first := true
+		for sc.Scan() {
+			line := sc.Text()
+			if first {
+				first = false
+				if strings.HasPrefix(line, "name\t") {
+					continue
+				}
+			}
+			fields := strings.Split(line, "\t")
+			// name proto host port exit_ip zen_ms ok fail penalized_until
+			if len(fields) < 5 {
+				continue
+			}
+			if fields[4] != "" {
+				out[fields[0]] = fields[4]
+			}
+		}
+		f.Close()
+	}
+	s.exitIPCache = out
+	s.exitIPAt = time.Now()
+	return out
 }
 
 // New builds a server.
@@ -122,15 +230,21 @@ func New(cfg Config, st *store.Store, zc *zen.Client, gc *gate.Cache) *Server {
 	if cfg.DefaultProvider == "" {
 		cfg.DefaultProvider = ProviderZen
 	}
-	s := &Server{cfg: cfg, store: st, zen: zc, gate: gc}
+	s := &Server{cfg: cfg, store: st, zen: zc, gate: gc, dataDir: cfg.DataDir}
 	if gc != nil {
-		// Push each new profile into the Zen client so header and tool shaping
-		// follow the probe.
-		gc.OnUpdate = func(p *gate.Profile) {
-			zc.Gate = zen.ProfileFromGate(p)
+		var saved gate.Profile
+		if raw := st.GetSetting("gate.verified_profile.v1"); len(raw) > 0 && len(raw) <= 65536 && json.Unmarshal([]byte(raw), &saved) == nil {
+			gc.Restore(&saved)
 		}
-		if snap := gc.Snapshot(); snap != nil {
-			zc.Gate = zen.ProfileFromGate(snap)
+		// Read immutable snapshots instead of racing a profile pointer update
+		// against requests and transport clones.
+		zc.GateProvider = func() *zen.GateProfile { return zen.ProfileFromGate(gc.Snapshot()) }
+		gc.OnUpdate = func(p *gate.Profile) {
+			if p.Source == "probe" && p.Verdict == "ok" {
+				if raw, err := json.Marshal(p); err == nil && len(raw) <= 65536 {
+					_ = st.SetSetting("gate.verified_profile.v1", string(raw))
+				}
+			}
 		}
 	}
 	return s
@@ -139,7 +253,6 @@ func New(cfg Config, st *store.Store, zc *zen.Client, gc *gate.Cache) *Server {
 // Handler returns the root HTTP handler.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-
 	mux.HandleFunc("POST /v1/messages", func(w http.ResponseWriter, r *http.Request) {
 		s.handleProxy(w, r, "anthropic")
 	})
@@ -165,6 +278,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/requests", s.handleRequests)
 	mux.HandleFunc("DELETE /api/requests", s.handleClearRequests)
 	mux.HandleFunc("GET /api/models", s.handleModelCatalog)
+	mux.HandleFunc("GET /api/models/status", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, http.StatusOK, s.zen.CatalogStatus()) })
 	mux.HandleFunc("GET /api/config", s.handleConfig)
 	mux.HandleFunc("POST /api/playground", s.handlePlayground)
 	mux.HandleFunc("GET /api/settings", s.handleGetSettings)
@@ -175,6 +289,14 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PUT /api/providers/default", s.handleSetDefaultProvider)
 	mux.HandleFunc("PUT /api/providers/tokenharbor", s.handleSetTokenHarbor)
 	mux.HandleFunc("PUT /api/providers/cline", s.handleSetCline)
+	mux.HandleFunc("POST /api/providers/codebuddy/login", s.handleCodeBuddyLogin)
+	mux.HandleFunc("POST /api/providers/codebuddy/poll", s.handleCodeBuddyPoll)
+	mux.HandleFunc("GET /api/providers/codebuddy/accounts", s.handleCodeBuddyAccounts)
+	mux.HandleFunc("POST /api/providers/codebuddy/accounts/{id}/select", s.handleSelectCodeBuddyAccount)
+	mux.HandleFunc("DELETE /api/providers/codebuddy/accounts/{id}", s.handleDeleteCodeBuddyAccount)
+	mux.HandleFunc("GET /api/providers/codebuddy/quota", s.handleCodeBuddyQuota)
+	mux.HandleFunc("GET /api/providers/codebuddy/models", s.handleCodeBuddyModels)
+	mux.HandleFunc("PUT /api/providers/codebuddy", s.handleSetCodeBuddy)
 
 	mux.HandleFunc("GET /api/proxies", s.handleListProxies)
 	mux.HandleFunc("POST /api/proxies", s.handleCreateProxy)
@@ -265,33 +387,22 @@ func describeClient(r *http.Request) string {
 	return ua
 }
 
+// resolveModel honors explicit aliases and keeps an explicitly selected model.
+// A missing credential or a failed catalog lookup must never switch a request
+// to the default model. The default is only for an omitted model.
 func (s *Server) resolveModel(ctx context.Context, requested string) string {
+	if requested == "" {
+		return s.DefaultModel()
+	}
 	if alias := s.store.GetSetting("alias:" + requested); alias != "" {
 		return alias
 	}
-	low := strings.ToLower(requested)
-	if strings.Contains(low, "glm") {
-		return requested
+	// OpenCode publishes separate paid and free DeepSeek IDs. Existing clients
+	// selecting the bare ID without a paid upstream key mean the free offering.
+	if requested == "deepseek-v4.1-flash" && s.zen.UpstreamKey == "" {
+		return "deepseek-v4.1-flash-free"
 	}
-	if strings.HasSuffix(low, ":free") {
-		return requested
-	}
-	if zen.IsFreeModel(requested) {
-		return requested
-	}
-	if s.zen.UpstreamKey == "" {
-		return s.DefaultModel()
-	}
-	models, err := s.zen.ListModels(ctx)
-	if err != nil {
-		return s.DefaultModel()
-	}
-	for _, m := range models {
-		if m.ID == requested {
-			return requested
-		}
-	}
-	return s.DefaultModel()
+	return requested
 }
 
 func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, surface string) {
@@ -336,37 +447,30 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, surface str
 		s.handleClineProxy(w, r, surface, raw, bareModel, requestedModel, key, client)
 		return
 	}
-
+	if provider == ProviderCodeBuddy {
+		s.handleCodeBuddyProxy(w, r, surface, raw, bareModel, requestedModel, key, client)
+		return
+	}
 
 	started := time.Now()
 	var body map[string]any
 	var toolMap *zen.ToolInjection
 
-	if surface == "anthropic" {
-		var req translate.AnthropicRequest
-		if err := json.Unmarshal(raw, &req); err != nil {
-			writeAPIError(w, http.StatusBadRequest, "invalid JSON body: "+err.Error(), "invalid_request_error")
-			return
-		}
-		result, err := translate.AnthropicToZen(&req, s.resolveModel(r.Context(), bareModel), s.zen.Gate)
-		if err != nil {
-			writeAPIError(w, http.StatusBadRequest, "translation failed: "+err.Error(), "invalid_request_error")
-			return
-		}
-		body, toolMap = result.Body, result.ToolMap
-	} else {
-		var req translate.OpenAIChatRequest
-		if err := json.Unmarshal(raw, &req); err != nil {
-			writeAPIError(w, http.StatusBadRequest, "invalid JSON body: "+err.Error(), "invalid_request_error")
-			return
-		}
-		result, err := translate.OpenAIToZen(&req, s.resolveModel(r.Context(), bareModel), s.zen.Gate)
-		if err != nil {
-			writeAPIError(w, http.StatusBadRequest, "translation failed: "+err.Error(), "invalid_request_error")
-			return
-		}
-		body, toolMap = result.Body, result.ToolMap
+	resolvedModel := s.resolveModel(r.Context(), bareModel)
+	profile := s.zen.CurrentGate()
+	r = r.WithContext(zen.WithGateSnapshot(r.Context(), profile))
+	body, toolMap, err = s.translateZenBodyWithProfile(raw, surface, resolvedModel, profile)
+	if err != nil {
+		writeAPIError(w, http.StatusBadRequest, err.Error(), "invalid_request_error")
+		return
 	}
+	// A recovered profile must reshape the original request and replace the
+	// response tool mapping together, so client tool calls retain their names.
+	r = r.WithContext(context.WithValue(r.Context(), gateRebuildKey{}, func(profile *zen.GateProfile) (map[string]any, error) {
+		var rebuildErr error
+		body, toolMap, rebuildErr = s.translateZenBodyWithProfile(raw, surface, resolvedModel, profile)
+		return body, rebuildErr
+	}))
 
 	// The translator writes the resolved id into the body; read it back so the
 	// log records exactly what went upstream.
@@ -390,16 +494,33 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, surface str
 	sessionSeed := fmt.Sprintf("%d:%s:%s", key.ID, client, model)
 	// Prefer mihomo when configured: it rotates the egress IP on a rate limit,
 	// which is the only mechanism that actually resets Zen's per-IP quota.
-	events, status, err, mihomoGroupName := s.mihomoStreamZen(r.Context(), model, sessionSeed, body, base)
-	if mihomoGroupName != "" {
-		base.Relay = "mihomo:" + mihomoGroupName
-	} else {
-		var pool *store.ProxyPool
-		events, status, err, pool = s.streamZenWithRotation(r.Context(), model, sessionSeed, body, base)
-		base.Relay = describeRelay(pool)
+	events, status, err, relay := s.mihomoStreamZen(r.Context(), model, sessionSeed, body, base)
+	base.Relay = relay
+
+	// A spent per-model allowance cannot be fixed by another exit IP: the
+	// limit is scoped to (egress, model). When the monitor published a model
+	// that still has allowance, serve the request with it instead of failing.
+	if err != nil && status == http.StatusTooManyRequests {
+		if fallback := s.fallbackModelForLimit(r.Context(), model); fallback != "" {
+			fallbackBody, fallbackMap, buildErr := s.translateZenBodyWithProfile(raw, surface, fallback, profile)
+			if buildErr == nil {
+				if fallbackModel, ok := fallbackBody["model"].(string); ok {
+					body = fallbackBody
+					toolMap = fallbackMap
+					model = fallbackModel
+					base.Model = fallbackModel
+					base.Relay = relay + " -> fallback:" + fallback
+					events, status, err, relay = s.mihomoStreamZen(r.Context(), model, sessionSeed, body, base)
+				}
+			}
+		}
 	}
+
 	if err != nil {
 		base.Status = status
+		if base.Status < 400 {
+			base.Status = http.StatusBadGateway
+		}
 		base.Err = err.Error()
 		s.recordRequest(base)
 		// Surface the upstream status so a client can back off correctly; only
@@ -408,8 +529,22 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, surface str
 		if status >= 400 && status < 600 {
 			httpStatus = status
 		}
+		var upstream *zen.UpstreamError
+		if errors.As(err, &upstream) && upstream.RetryAfter > 0 {
+			w.Header().Set("Retry-After", strconv.FormatInt(int64((upstream.RetryAfter+time.Second-1)/time.Second), 10))
+		}
 		writeAPIError(w, httpStatus, err.Error(), "upstream_error")
 		return
+	}
+
+	events, outcome := zen.ObserveStream(r.Context(), events)
+	finishRecord := func() {
+		base.Status = http.StatusOK
+		if outcome.Failure != nil {
+			base.Status = outcome.Failure.HTTPStatus()
+			base.Err = outcome.Failure.Message
+		}
+		s.recordRequest(base)
 	}
 
 	if surface == "anthropic" {
@@ -421,8 +556,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, surface str
 		writer := translate.NewAnthropicStreamWriter(w, model)
 		translate.StreamAnthropic(events, writer, toolMap)
 		base.In, base.Out = writer.Usage()
-		base.Status = http.StatusOK
-		s.recordRequest(base)
+		finishRecord()
 		return
 	}
 
@@ -438,8 +572,11 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, surface str
 	if !streamRequested {
 		completion := translate.CollectOpenAI(events, model, toolMap)
 		base.In, base.Out = usageFrom(completion)
-		base.Status = http.StatusOK
-		s.recordRequest(base)
+		finishRecord()
+		if outcome.Failure != nil {
+			writeJSON(w, outcome.Failure.HTTPStatus(), zen.ErrorBody(outcome.Failure))
+			return
+		}
 		writeJSON(w, http.StatusOK, completion)
 		return
 	}
@@ -453,8 +590,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, surface str
 	if usage != nil {
 		base.In, base.Out = usage.PromptTokens, usage.CompletionTokens
 	}
-	base.Status = http.StatusOK
-	s.recordRequest(base)
+	finishRecord()
 }
 
 func usageFrom(completion map[string]any) (int64, int64) {
@@ -512,10 +648,6 @@ func (s *Server) handleModels(w http.ResponseWriter, r *http.Request) {
 	}
 	data := make([]map[string]any, 0, len(models))
 	for _, m := range models {
-		// Stale upstream id: Token Harbor serves this model as mimo-v2.6-flash:free.
-		if m.ID == "mimo-v2.6-flash-free" {
-			continue
-		}
 		data = append(data, map[string]any{
 			"id": m.ID, "object": "model", "created": m.Created, "owned_by": "opencode",
 		})
@@ -527,13 +659,15 @@ func (s *Server) handleModels(w http.ResponseWriter, r *http.Request) {
 		map[string]any{"id": "cline-free/deepseek-v4.1-flash", "object": "model", "owned_by": "cline"},
 		map[string]any{"id": "stealth/space-bunny-alpha", "object": "model", "owned_by": "cline"},
 		map[string]any{"id": "cline-free/mimo-v2.6-flash", "object": "model", "owned_by": "cline"},
-		map[string]any{"id": "cline-free/muse-spark-1.3-contributor", "object": "model", "owned_by": "cline"},
 		map[string]any{"id": "qwen3.8-flash:free", "object": "model", "owned_by": "tokenharbor"},
 		map[string]any{"id": "deepseek-v4.1-flash:free", "object": "model", "owned_by": "tokenharbor"},
 		map[string]any{"id": "mimo-v2.6-flash:free", "object": "model", "owned_by": "tokenharbor"},
-		map[string]any{"id": "space-bunny-free", "object": "model", "owned_by": "opencode"},
-		map[string]any{"id": "jev-1.13-free", "object": "model", "owned_by": "opencode"},
 	)
+	for _, model := range codeBuddyModels {
+		data = append(data, map[string]any{
+			"id": "codebuddy/" + model.ID, "object": "model", "owned_by": ProviderCodeBuddy,
+		})
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": data})
 }
 
@@ -683,7 +817,7 @@ func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"default_model":    s.DefaultModel(),
 		"default_provider": s.effectiveProvider(),
-		"upstream":         s.zen.BaseURL + "/responses",
+		"upstream":         s.zen.EffectiveBaseURL(s.DefaultModel()) + "/responses",
 		"key_count":        len(keys),
 		"aliases":          aliases,
 	})
@@ -771,11 +905,31 @@ func (s *Server) handlePlayground(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	if provider == ProviderCodeBuddy {
+		text, in, out, err := s.runCodeBuddyPlayground(ctx, model, prompt)
+		if err != nil {
+			s.logPlayground(provider, model, requested, http.StatusBadGateway, started, err.Error())
+			writeJSON(w, http.StatusOK, map[string]any{"error": err.Error()})
+			return
+		}
+		s.logPlayground(provider, model, requested, http.StatusOK, started, "")
+		writeJSON(w, http.StatusOK, map[string]any{
+			"text":  text,
+			"usage": map[string]int64{"input_tokens": in, "output_tokens": out},
+		})
+		return
+	}
 
-	// Resolve against the Zen catalog: a paid model with no upstream credential
-	// falls back to the configured free default instead of failing.
+	// Apply explicit aliases and the DeepSeek free-variant compatibility alias.
+	// Never substitute the default for a model the caller already selected.
 	model = s.resolveModel(r.Context(), model)
 
+	tools := playgroundTools()
+	profile := s.zen.CurrentGate()
+	ctx = zen.WithGateSnapshot(ctx, profile)
+	if zen.IsFreeModel(model) {
+		tools, _ = zen.PrepareTools(tools, profile)
+	}
 	zenBody := map[string]any{
 		"model": model,
 		"input": []map[string]any{{
@@ -785,11 +939,11 @@ func (s *Server) handlePlayground(w http.ResponseWriter, r *http.Request) {
 		"max_output_tokens": 2000,
 		"store":             false,
 		"stream":            true,
-		"tools":             playgroundTools(),
+		"tools":             tools,
 		"tool_choice":       "auto",
 	}
 
-	events, status, err := s.zen.Stream(ctx, model, "playground", zenBody)
+	events, status, err, _ := s.mihomoStreamZen(ctx, model, "playground", zenBody, requestRecord{})
 	if err != nil {
 		s.logPlayground(provider, model, requested, status, started, err.Error())
 		writeJSON(w, http.StatusOK, map[string]any{"error": err.Error()})
@@ -798,6 +952,7 @@ func (s *Server) handlePlayground(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	events, outcome := zen.ObserveStream(ctx, events)
 	text := ""
 	var in, out int64
 	for ev := range events {
@@ -811,6 +966,11 @@ func (s *Server) handlePlayground(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if outcome.Failure != nil {
+		s.logPlayground(provider, model, requested, outcome.Failure.HTTPStatus(), started, outcome.Failure.Message)
+		writeJSON(w, http.StatusOK, map[string]any{"error": outcome.Failure.Message})
+		return
+	}
 	s.logPlayground(provider, model, requested, http.StatusOK, started, "")
 	writeJSON(w, http.StatusOK, map[string]any{
 		"text":  text,

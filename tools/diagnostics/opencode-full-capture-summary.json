@@ -1,0 +1,223 @@
+{
+  "captured_at": "2026-10-14T22:30:25+0700",
+  "binary": "/home/rian/.npm-global/bin/opencode",
+  "version": "1.19.0",
+  "mode": "isolated configuration and storage; localhost only; no real credentials or upstream inference",
+  "runs": [
+    {
+      "model": "muse-spark-1.3-contributor-free",
+      "exit_code": 1,
+      "requests_captured": 2,
+      "diagnostic_output": "locally stopped after capture"
+    }
+  ],
+  "requests": [
+    {
+      "path": "/v1/responses",
+      "headers": {
+        "content-type": "application/json",
+        "user-agent": "opencode/1.19.0 ai-sdk/provider-utils/4.0.40 runtime/bun/1.3.14",
+        "x-opencode-client": "cli",
+        "x-opencode-project": "global",
+        "x-opencode-request": "msg_<12 hex><14 base62>",
+        "x-opencode-session": "ses_<12 hex><14 base62>",
+        "x-opencode-session-id": "ses_<12 hex><14 base62>",
+        "connection": "keep-alive",
+        "accept": "*/*",
+        "host": "127.0.0.1:37753",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "content-length": "2608"
+      },
+      "authorization_present": true,
+      "body_bytes": 2608,
+      "body_keys": [
+        "model",
+        "input",
+        "max_output_tokens",
+        "store",
+        "include",
+        "reasoning",
+        "stream"
+      ],
+      "model": "gpt-5.4-nano",
+      "stream": true,
+      "store": false,
+      "max_output_tokens": 32000,
+      "max_tokens": null,
+      "prompt_cache_key": null,
+      "input_roles": [
+        "developer",
+        "user",
+        "user"
+      ],
+      "tools": []
+    },
+    {
+      "path": "/v1/responses",
+      "headers": {
+        "content-type": "application/json",
+        "user-agent": "opencode/1.19.0 ai-sdk/provider-utils/4.0.40 runtime/bun/1.3.14",
+        "x-opencode-client": "cli",
+        "x-opencode-project": "global",
+        "x-opencode-request": "msg_<12 hex><14 base62>",
+        "x-opencode-session": "ses_<12 hex><14 base62>",
+        "x-opencode-session-id": "ses_<12 hex><14 base62>",
+        "connection": "keep-alive",
+        "accept": "*/*",
+        "host": "127.0.0.1:37753",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "content-length": "32678"
+      },
+      "authorization_present": true,
+      "body_bytes": 32678,
+      "body_keys": [
+        "model",
+        "input",
+        "max_output_tokens",
+        "store",
+        "include",
+        "prompt_cache_key",
+        "tools",
+        "tool_choice",
+        "stream"
+      ],
+      "model": "muse-spark-1.3-contributor-free",
+      "stream": true,
+      "store": false,
+      "max_output_tokens": 32000,
+      "max_tokens": null,
+      "prompt_cache_key": "<session ID>",
+      "input_roles": [
+        "developer",
+        "user"
+      ],
+      "tools": [
+        {
+          "name": "bash",
+          "required": [
+            "command"
+          ],
+          "schema_properties": [
+            "command",
+            "timeout",
+            "workdir"
+          ]
+        },
+        {
+          "name": "edit",
+          "required": [
+            "filePath",
+            "oldString",
+            "newString"
+          ],
+          "schema_properties": [
+            "filePath",
+            "oldString",
+            "newString",
+            "replaceAll"
+          ]
+        },
+        {
+          "name": "glob",
+          "required": [
+            "pattern"
+          ],
+          "schema_properties": [
+            "pattern",
+            "path"
+          ]
+        },
+        {
+          "name": "grep",
+          "required": [
+            "pattern"
+          ],
+          "schema_properties": [
+            "pattern",
+            "path",
+            "include"
+          ]
+        },
+        {
+          "name": "read",
+          "required": [
+            "filePath"
+          ],
+          "schema_properties": [
+            "filePath",
+            "offset",
+            "limit"
+          ]
+        },
+        {
+          "name": "skill",
+          "required": [
+            "name"
+          ],
+          "schema_properties": [
+            "name"
+          ]
+        },
+        {
+          "name": "task",
+          "required": [
+            "description",
+            "prompt",
+            "subagent_type"
+          ],
+          "schema_properties": [
+            "description",
+            "prompt",
+            "subagent_type",
+            "task_id",
+            "command"
+          ]
+        },
+        {
+          "name": "todowrite",
+          "required": [
+            "todos"
+          ],
+          "schema_properties": [
+            "todos"
+          ]
+        },
+        {
+          "name": "webfetch",
+          "required": [
+            "url"
+          ],
+          "schema_properties": [
+            "url",
+            "format",
+            "timeout"
+          ]
+        },
+        {
+          "name": "websearch",
+          "required": [
+            "query"
+          ],
+          "schema_properties": [
+            "query",
+            "numResults",
+            "livecrawl",
+            "type",
+            "contextMaxCharacters"
+          ]
+        },
+        {
+          "name": "write",
+          "required": [
+            "content",
+            "filePath"
+          ],
+          "schema_properties": [
+            "content",
+            "filePath"
+          ]
+        }
+      ]
+    }
+  ]
+}

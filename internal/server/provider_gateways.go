@@ -34,6 +34,10 @@ func (s *Server) handleListProviders(w http.ResponseWriter, r *http.Request) {
 	thMu.Unlock()
 
 	clineKey := s.clineAPIKey()
+	codeBuddyKey := s.codeBuddyAPIKey()
+	codeBuddyAccounts, _ := s.listCodeBuddyAccountViews()
+	codeBuddyOAuthConnected := len(codeBuddyAccounts) > 0
+	codeBuddyConnected := codeBuddyOAuthConnected || codeBuddyKey != ""
 
 	qTotal, qActive, qPenalized, _ := s.qwenPoolStatus()
 
@@ -56,6 +60,13 @@ func (s *Server) handleListProviders(w http.ResponseWriter, r *http.Request) {
 			"configured": clineKey != "",
 			"api_key":    redactKey(clineKey),
 			"base_url":   s.clineBaseURL(),
+		},
+		"codebuddy": map[string]any{
+			"configured":         codeBuddyConnected,
+			"oauth_connected":    codeBuddyOAuthConnected,
+			"accounts":           codeBuddyAccounts,
+			"api_key_configured": codeBuddyKey != "",
+			"api_key":            redactKey(codeBuddyKey),
 		},
 		"default": s.configuredDefaultProvider(),
 	})
@@ -142,6 +153,24 @@ func (s *Server) handleSetCline(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleSetCodeBuddy stores an optional CodeBuddy Intl API key.
+func (s *Server) handleSetCodeBuddy(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		APIKey string `json:"api_key"`
+	}
+	if err := decodeGatewayJSON(r, &body); err != nil {
+		writeAPIError(w, http.StatusBadRequest, "invalid JSON", "bad_request")
+		return
+	}
+	if key := strings.TrimSpace(body.APIKey); key != "" {
+		if err := s.store.SetSetting("codebuddy_api_key", key); err != nil {
+			writeAPIError(w, http.StatusInternalServerError, err.Error(), "store_error")
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "message": "CodeBuddy Intl API key saved"})
+}
+
 func (s *Server) handleDeleteProvider(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "tokenharbor" {
@@ -165,6 +194,15 @@ func (s *Server) handleDeleteProvider(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"status": "deleted"})
 		return
 	}
+	if id == ProviderCodeBuddy {
+		_ = s.store.SetSetting("codebuddy_api_key", "")
+		_ = s.store.SetSetting("codebuddy_accounts", "[]")
+		_ = s.store.SetSetting("codebuddy_access_token", "")
+		_ = s.store.SetSetting("codebuddy_refresh_token", "")
+		_ = s.store.SetSetting("codebuddy_expires_at", "")
+		writeJSON(w, http.StatusOK, map[string]any{"status": "deleted"})
+		return
+	}
 	writeAPIError(w, http.StatusNotFound, "provider account not found", "not_found")
 }
 
@@ -177,9 +215,9 @@ func (s *Server) handleSetDefaultProvider(w http.ResponseWriter, r *http.Request
 		return
 	}
 	switch body.Provider {
-	case ProviderZen, ProviderTokenHarbor, ProviderCline:
+	case ProviderZen, ProviderTokenHarbor, ProviderCline, ProviderCodeBuddy:
 	default:
-		writeAPIError(w, http.StatusBadRequest, fmt.Sprintf("unknown provider %q (valid: %s, %s, %s)", body.Provider, ProviderZen, ProviderTokenHarbor, ProviderCline), "bad_provider")
+		writeAPIError(w, http.StatusBadRequest, fmt.Sprintf("unknown provider %q (valid: %s, %s, %s, %s)", body.Provider, ProviderZen, ProviderTokenHarbor, ProviderCline, ProviderCodeBuddy), "bad_provider")
 		return
 	}
 	if err := s.store.SetSetting("default_provider", body.Provider); err != nil {
@@ -201,7 +239,7 @@ func (s *Server) effectiveProvider() string {
 }
 
 func (s *Server) gatewayModels() []map[string]any {
-	return []map[string]any{
+	models := []map[string]any{
 		{
 			"id":         "cline/glm-5.2",
 			"name":       "GLM 5.2 (Z.ai via Cline Free)",
@@ -243,4 +281,12 @@ func (s *Server) gatewayModels() []map[string]any {
 			"max_output": 8192,
 		},
 	}
+	for _, model := range codeBuddyModels {
+		models = append(models, map[string]any{
+			"id":       "codebuddy/" + model.ID,
+			"name":     model.Name + " (CodeBuddy Intl)",
+			"provider": ProviderCodeBuddy,
+		})
+	}
+	return models
 }

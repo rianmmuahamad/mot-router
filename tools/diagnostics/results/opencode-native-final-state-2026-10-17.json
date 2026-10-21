@@ -1,0 +1,32 @@
+{
+  "gate": {
+    "probe_model": "deepseek-v4.1-flash-free",
+    "source": "probe",
+    "verdict": "ok",
+    "user_agent": "opencode/latest/2.0.29/cli",
+    "verified_version": "2.0.29",
+    "client_format": "v2",
+    "upstream_url": "https://opencode.ai/inference/v1",
+    "required_tools": [
+      "shell",
+      "edit",
+      "glob",
+      "grep",
+      "read",
+      "write",
+      "skill",
+      "subagent",
+      "webfetch",
+      "websearch",
+      "question",
+      "execute"
+    ]
+  },
+  "services": {
+    "mot-router": "active",
+    "mot-nodebank-runtime": "active",
+    "mot-nodebank": "active",
+    "guard": "active"
+  },
+  "artifact_sha256": "3d871d4368d20764dc7917c9a02a1ed1cf370e83c348a6ebe442aa6821188abc"
+}

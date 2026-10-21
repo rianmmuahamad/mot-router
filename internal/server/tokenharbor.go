@@ -208,29 +208,6 @@ func isCohortPause(status int, detail []byte) bool {
 	return strings.Contains(string(detail), "cohort_refusal_breaker")
 }
 
-// isKeyRevokedOrDisabled reports whether an error response means this specific API key
-// cannot be used (consent changed, free models disabled, key revoked, unauthorized).
-// These errors are key-specific and MUST trigger failover to the next key.
-func isKeyRevokedOrDisabled(status int, detail []byte) bool {
-	if status == http.StatusUnauthorized {
-		return true
-	}
-	if status == http.StatusForbidden {
-		s := string(detail)
-		if strings.Contains(s, "free_models_disabled") ||
-			strings.Contains(s, "Free-model consent") ||
-			strings.Contains(s, "consent has changed") ||
-			strings.Contains(s, "invalid_api_key") ||
-			strings.Contains(s, "account_suspended") ||
-			strings.Contains(s, "request was refused") ||
-			strings.Contains(s, "contact support from the email address") ||
-			strings.Contains(s, "terms_violation") ||
-			strings.Contains(s, "account_restricted") {
-			return true
-		}
-	}
-	return false
-}
 func (s *Server) handleTokenHarborProxy(w http.ResponseWriter, r *http.Request, surface string, raw []byte, model, requestedModel string, key *store.APIKey, clientDesc string) {
 	started := time.Now()
 
@@ -347,6 +324,7 @@ func (s *Server) handleTokenHarborProxy(w http.ResponseWriter, r *http.Request, 
 		if resp.StatusCode == http.StatusTooManyRequests {
 			detail, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 			resp.Body.Close()
+			lastResp = &http.Response{StatusCode: resp.StatusCode}
 			lastDetail = detail
 			if qwenOnly {
 				penalizeTokenHarborQwenKey(currentKey)
@@ -367,17 +345,6 @@ func (s *Server) handleTokenHarborProxy(w http.ResponseWriter, r *http.Request, 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			detail, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
 			resp.Body.Close()
-			if isKeyRevokedOrDisabled(resp.StatusCode, detail) {
-				lastDetail = detail
-				if qwenOnly {
-					penalizeTokenHarborQwenKey(currentKey)
-					log.Printf("[tokenharbor-qwen] key %s consent/auth failure (HTTP %d), failing over...", redactKey(currentKey), resp.StatusCode)
-				} else {
-					penalizeTokenHarborKey(currentKey)
-					log.Printf("[tokenharbor] key %s consent/auth failure (HTTP %d), failing over...", redactKey(currentKey), resp.StatusCode)
-				}
-				continue
-			}
 			if isCohortPause(resp.StatusCode, detail) {
 				base.Status = resp.StatusCode
 				base.Err = string(detail)
@@ -602,15 +569,6 @@ func (s *Server) runTokenHarborPlayground(ctx context.Context, model, prompt str
 		}
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			if isKeyRevokedOrDisabled(resp.StatusCode, bodyBytes) {
-				if qwenOnly {
-					penalizeTokenHarborQwenKey(currentKey)
-				} else {
-					penalizeTokenHarborKey(currentKey)
-				}
-				lastErr = fmt.Errorf("key %s disabled/consent error (HTTP %d)", redactKey(currentKey), resp.StatusCode)
-				continue
-			}
 			if isCohortPause(resp.StatusCode, bodyBytes) {
 				return "", 0, 0, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(bodyBytes))
 			}

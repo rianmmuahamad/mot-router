@@ -1,0 +1,36 @@
+{
+  "model": "glm-5.3-flash-free",
+  "checks": {
+    "baseline": {
+      "probe_model": "glm-5.3-flash-free",
+      "source": "fallback",
+      "verdict": "baseline rejected with 429",
+      "client_format": "v2",
+      "verified_version": "2.0.32",
+      "required_tools": [
+        "shell",
+        "edit",
+        "glob",
+        "grep",
+        "read",
+        "write",
+        "skill",
+        "subagent",
+        "webfetch",
+        "websearch",
+        "question",
+        "execute"
+      ],
+      "conditions": [
+        {
+          "name": "baseline",
+          "ok": false,
+          "status": 429,
+          "inconclusive": true
+        }
+      ]
+    }
+  },
+  "model_substitution": false,
+  "stopped": "GLM baseline did not verify; no extra inference or IP rotation requested"
+}

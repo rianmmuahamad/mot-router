@@ -1,0 +1,10 @@
+{
+  "model": "glm-5.3-flash-free",
+  "egress": "VPS current NodeBank node via SSH forward",
+  "version": "opencode v2.0.29",
+  "exit_code": 0,
+  "text": "GLM_NATIVE_VPS_OK",
+  "errors": [],
+  "stderr": "",
+  "ok": true
+}

@@ -807,10 +807,47 @@ code { font-family: var(--font-mono); font-size: .875em; }
                     <option value="opencode-zen">opencode-zen</option>
                     <option value="tokenharbor">tokenharbor</option>
                     <option value="cline">cline</option>
+                    <option value="codebuddy">codebuddy (CodeBuddy Intl)</option>
                   </select>
                   <span class="material-symbols-outlined">expand_more</span>
                 </div>
                 <span class="hint" style="margin:0">Prefix <code>provider/model</code> selalu menang.</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>CodeBuddy Intl</h2>
+                <div class="row" style="gap:8px">
+                  <span id="codeBuddyStatus" class="badge default">Not connected</span>
+                  <button id="codeBuddyLogin" class="btn primary sm" onclick="connectCodeBuddy()"><span class="material-symbols-outlined">login</span>Add account</button>
+                </div>
+              </div>
+              <p class="card-sub" style="margin-bottom:16px">Login akun CodeBuddy Intl lewat OAuth/device login. Mot Router menyimpan token di database lokal, memperbaruinya saat kedaluwarsa, dan mengirim request langsung ke CodeBuddy. Model memakai prefix <code>codebuddy/</code>.</p>
+              <div class="stack" style="gap:12px;max-width:580px">
+                <div class="field">
+                  <label>API Key (optional, jika ingin pakai API key)</label>
+                  <div class="row" style="gap:8px">
+                    <input id="codeBuddyApiKey" type="password" placeholder="Opsional — OAuth login direkomendasikan" style="font-family:var(--font-mono)" />
+                    <button class="btn secondary sm" onclick="saveCodeBuddy()"><span class="material-symbols-outlined">save</span>Save</button>
+                  </div>
+                </div>
+                <div class="hint">Model Intl: <code>codebuddy/glm-5.2</code>, <code>codebuddy/kimi-k2.7</code>, <code>codebuddy/deepseek-v4-pro</code>, and others.</div>
+                <div class="row" style="justify-content:flex-start;gap:8px">
+                  <button class="btn sm secondary" onclick="loadCodeBuddyModels()"><span class="material-symbols-outlined">download</span>Load CodeBuddy Models</button>
+                  <span id="codeBuddyModelStatus" class="hint" style="margin:0"></span>
+                </div>
+              </div>
+              <div style="margin-top:20px">
+                <div class="card-head"><h3 style="margin:0">Accounts</h3><span id="codeBuddyAccountCount" class="badge default">0 accounts</span></div>
+                <div id="codeBuddyAccounts" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px"></div>
+              </div>
+              <div style="margin-top:20px">
+                <div class="card-head">
+                  <h3 style="margin:0">CodeBuddy Quota Tracker</h3>
+                  <button class="btn sm secondary" onclick="loadCodeBuddyQuota()"><span class="material-symbols-outlined">refresh</span>Refresh quota</button>
+                </div>
+                <div id="codeBuddyQuotas" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px"></div>
               </div>
             </div>
 
@@ -914,9 +951,8 @@ code { font-family: var(--font-mono); font-size: .875em; }
                 </div>
               </div>
               <p class="card-sub" style="margin-bottom:16px">
-                Zen membatasi free tier <b>per IP</b>. Saat kena limit, router memindahkan
-                node mihomo sehingga IP egress berubah dan kuota reset — otomatis, tanpa
-                mengubah klien.
+                Rotate sekarang berpindah ke node sehat berikutnya. Tes ke Zen menguji satu node aktif
+                tanpa mengganti node, memakai DeepSeek Flash Free dan profil adaptasi yang tersimpan.
               </p>
 
               <div class="card-section">
@@ -930,8 +966,9 @@ code { font-family: var(--font-mono); font-size: .875em; }
                     </label>
                   </div>
                 </div>
+                <p id="nodebankRuntimeSummary" class="card-sub hidden"></p>
                 <div class="kv">
-                  <span class="muted">Versi mihomo</span><span id="mihomoVersion" class="mono">–</span>
+                  <span class="muted">Versi engine</span><span id="mihomoVersion" class="mono">–</span>
                   <span class="muted">Group</span><span id="mihomoGroupName" class="mono">–</span>
                   <span class="muted">Node aktif</span><span id="mihomoNode" class="mono">–</span>
                   <span class="muted">IP egress</span><span id="mihomoIP" class="mono">–</span>
@@ -939,24 +976,24 @@ code { font-family: var(--font-mono); font-size: .875em; }
                 <div class="row" style="margin-top:12px">
                   <label class="row" style="gap:6px;margin:0;cursor:pointer;font-size:.875rem">
                     <input type="checkbox" id="mihomoRotate" onchange="saveMihomo()" style="width:auto" />
-                    <span>Rotate otomatis saat kena limit</span>
+                    <span>Rotasi otomatis saat koneksi gagal</span>
                   </label>
                 </div>
               </div>
             </div>
 
-            <div class="card">
+            <div class="card" id="proxyConnectionCard">
               <div class="card-head">
-                <h2>Koneksi</h2>
+                <h2>Koneksi engine</h2>
                 <span class="material-symbols-outlined muted">settings_ethernet</span>
               </div>
-              <div class="stack tight">
+              <div class="stack tight" id="proxyConnectionFields">
                 <div class="field">
                   <label for="mihomoController">Control API</label>
                   <input id="mihomoController" placeholder="http://127.0.0.1:9090" />
                 </div>
                 <div class="field">
-                  <label for="mihomoProxy">Proxy (mixed-port)</label>
+                  <label for="mihomoProxy">Proxy HTTPS</label>
                   <input id="mihomoProxy" placeholder="http://127.0.0.1:7890" />
                 </div>
                 <div class="field">
@@ -978,11 +1015,12 @@ code { font-family: var(--font-mono); font-size: .875em; }
               </div>
               <p class="card-sub" style="margin-bottom:12px">
                 Pilih group yang dipakai untuk rotasi. Angka menunjukkan jumlah node sehat
-                (bukan referensi group).
+                di runtime VPS. IP dari NodeBank ditampilkan terpisah sebagai kandidat laptop;
+                kandidat baru dihitung sehat setelah lolos pemeriksaan dari VPS.
               </p>
               <div class="table-scroll">
                 <table>
-                  <thead><tr><th>Group</th><th>Node aktif</th><th>Node sehat</th><th></th></tr></thead>
+                  <thead><tr><th>Group</th><th>Node aktif</th><th>Node sehat</th><th>IP kandidat NodeBank</th><th></th></tr></thead>
                   <tbody id="mihomoGroupsBody"></tbody>
                 </table>
               </div>
@@ -1050,7 +1088,7 @@ code { font-family: var(--font-mono); font-size: .875em; }
                 </div>
               </div>
               <div class="card-section row" style="justify-content:space-between">
-                <span style="font-size:.875rem">Rotate otomatis saat kena limit</span>
+                <span style="font-size:.875rem">Rotasi otomatis saat koneksi gagal</span>
                 <label class="row" style="gap:8px;margin:0;cursor:pointer">
                   <input type="checkbox" id="rotateToggle" onchange="setRotation()" style="width:auto" />
                 </label>
@@ -1134,6 +1172,7 @@ code { font-family: var(--font-mono); font-size: .875em; }
                 <span class="material-symbols-outlined muted">auto_fix_high</span>
               </div>
               <div id="gateAdaptations"></div>
+			  <p id="gateAutomatic" class="card-sub" style="margin-top:14px"></p>
             </div>
 
             <div class="card">
@@ -1300,7 +1339,7 @@ const PAGES = {
   providers:  { title: 'Providers',     icon: 'dns',           sub: 'Akun upstream dan default routing' },
   proxies:    { title: 'Proxy Pools',   icon: 'lan',           sub: 'Cloudflare relay untuk rotasi IP' },
   gate:       { title: 'Header Adaptation', icon: 'tune',      sub: 'Adaptasi otomatis header & tool klien' },
-  mihomo:     { title: 'IP Rotation',       icon: 'vpn_lock',   sub: 'Rotasi IP egress lewat mihomo saat kena limit' },
+  mihomo:     { title: 'IP Rotation',       icon: 'vpn_lock',   sub: 'Rotasi IP dan pemeriksaan node aktif lewat NodeBank' },
 };
 function showTab(name) {
   document.querySelectorAll('.nav-item').forEach(b => {
@@ -1463,7 +1502,16 @@ async function loadProviders() {
     }
     if (cl.base_url) $('clineBaseUrl').value = cl.base_url;
   }
-  const thList = MODELS.filter(m => m.provider === 'tokenharbor' || m.provider === 'cline');
+  if (data.codebuddy) {
+    const cb = data.codebuddy;
+    $('codeBuddyStatus').textContent = cb.oauth_connected ? 'OAuth connected' : cb.api_key_configured ? 'API key saved' : 'Not connected';
+    $('codeBuddyStatus').className = 'badge ' + (cb.configured ? 'success' : 'default');
+    $('codeBuddyApiKey').placeholder = cb.api_key_configured ? (cb.api_key || 'Key tersimpan; isi untuk mengganti') : 'Opsional — OAuth login direkomendasikan';
+    $('codeBuddyLogin').innerHTML = '<span class="material-symbols-outlined">person_add</span>' + (cb.oauth_connected ? 'Add another account' : 'Login CodeBuddy');
+    renderCodeBuddyAccounts(cb.accounts || []);
+    if (cb.oauth_connected) loadCodeBuddyQuota();
+  }
+  const thList = MODELS.filter(m => m.provider === 'tokenharbor' || m.provider === 'cline' || m.provider === 'codebuddy');
   $('agModels').innerHTML = thList.map(m => esc(m.id)).join('<br>') || 'cline/glm-5.2<br>cline-free/gemini-3.8-flash<br>qwen3.8-flash:free<br>deepseek-v4.1-flash:free';
 }
 async function saveTokenHarbor() {
@@ -1496,6 +1544,130 @@ async function saveCline() {
   });
   toast('Cline configuration saved', 'success');
   await loadProviders();
+}
+async function saveCodeBuddy() {
+  const key = $('codeBuddyApiKey').value.trim();
+  await fetch('/api/providers/codebuddy', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ api_key: key })
+  });
+  $('codeBuddyApiKey').value = '';
+  toast('CodeBuddy Intl API key saved', 'success');
+  await loadProviders();
+}
+function renderCodeBuddyAccounts(accounts) {
+  $('codeBuddyAccountCount').textContent = `${accounts.length} account${accounts.length === 1 ? '' : 's'}`;
+  $('codeBuddyAccountCount').className = 'badge ' + (accounts.length ? 'success' : 'default');
+  $('codeBuddyAccounts').innerHTML = accounts.map(account => `
+    <div class="card" style="padding:12px">
+      <div class="row" style="justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="min-width:0">
+          <div style="font-weight:600;overflow-wrap:anywhere">${esc(account.name || 'CodeBuddy account')}</div>
+          ${account.email ? `<div class="hint" style="margin:4px 0 0">${esc(account.email)}</div>` : ''}
+        </div>
+        <span class="badge ${account.active ? 'success' : 'default'}">${account.active ? 'Active' : 'Saved'}</span>
+      </div>
+      <div class="row" style="justify-content:flex-start;gap:8px;margin-top:12px">
+        ${account.active ? '' : `<button class="btn sm secondary" onclick="selectCodeBuddyAccount('${esc(account.id)}')">Use account</button>`}
+        <button class="btn sm danger" onclick="deleteCodeBuddyAccount('${esc(account.id)}')">Remove</button>
+      </div>
+    </div>`).join('') || '<div class="hint">Belum ada akun OAuth. Klik Add account untuk menambahkan akun CodeBuddy Intl.</div>';
+}
+async function selectCodeBuddyAccount(id) {
+  const res = await fetch(`/api/providers/codebuddy/accounts/${encodeURIComponent(id)}/select`, {method:'POST'});
+  const data = await res.json();
+  if (!res.ok) { toast(data.error?.message || 'Gagal memilih akun', 'error'); return; }
+  toast('Akun CodeBuddy aktif diperbarui', 'success');
+  await loadProviders();
+}
+async function deleteCodeBuddyAccount(id) {
+  if (!confirm('Hapus akun CodeBuddy ini dari Mot Router?')) return;
+  const res = await fetch(`/api/providers/codebuddy/accounts/${encodeURIComponent(id)}`, {method:'DELETE'});
+  const data = await res.json();
+  if (!res.ok) { toast(data.error?.message || 'Gagal menghapus akun', 'error'); return; }
+  toast('Akun CodeBuddy dihapus', 'success');
+  await loadProviders();
+}
+async function loadCodeBuddyQuota() {
+  const root = $('codeBuddyQuotas');
+  root.innerHTML = '<div class="hint">Memuat kuota akun CodeBuddy…</div>';
+  try {
+    const res = await fetch('/api/providers/codebuddy/quota');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Gagal memuat kuota');
+    root.innerHTML = (data.accounts || []).map(account => {
+      const buckets = Object.entries(account.quotas || {}).map(([name, quota]) => {
+        const used = Number(quota.used || 0), total = Number(quota.total || 0);
+        const pct = total > 0 ? Math.max(0, Math.min(100, used / total * 100)) : 0;
+        const reset = quota.reset_at ? new Date(quota.reset_at).toLocaleString() : '';
+        return `<div style="margin-top:12px">
+          <div class="row" style="justify-content:space-between;gap:8px"><b>${esc(name)}</b><span class="mono">${fmtNum(used)} / ${fmtNum(total)}</span></div>
+          <div style="height:7px;background:var(--border);border-radius:8px;margin-top:6px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${pct >= 90 ? 'var(--danger)' : 'var(--accent)'};border-radius:8px"></div></div>
+          ${reset ? `<div class="hint" style="margin:5px 0 0">Reset: ${esc(reset)}</div>` : ''}
+        </div>`;
+      }).join('');
+      return `<div class="card" style="padding:14px">
+        <div class="row" style="justify-content:space-between;gap:8px"><b>${esc(account.name || 'CodeBuddy account')}</b><span class="badge ${account.active ? 'success' : 'default'}">${esc(account.plan || (account.active ? 'Active' : 'Account'))}</span></div>
+        ${account.email ? `<div class="hint" style="margin:4px 0 0">${esc(account.email)}</div>` : ''}
+        ${account.message ? `<div class="hint" style="margin:10px 0 0">${esc(account.message)}</div>` : buckets || '<div class="hint" style="margin:10px 0 0">Kuota tidak tersedia.</div>'}
+        ${buckets ? `<div>${buckets}</div>` : ''}
+      </div>`;
+    }).join('') || '<div class="hint">Tambahkan akun OAuth CodeBuddy untuk melihat kuota pemakaian.</div>';
+  } catch (err) {
+    root.innerHTML = `<div class="hint">${esc(err.message)}</div>`;
+  }
+}
+async function loadCodeBuddyModels() {
+  const status = $('codeBuddyModelStatus');
+  status.textContent = 'Loading…';
+  try {
+    const res = await fetch('/api/providers/codebuddy/models');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Gagal memuat katalog CodeBuddy');
+    await loadModels();
+    status.textContent = `${data.count || 0} models loaded`;
+    toast('Katalog model CodeBuddy Intl dimuat', 'success');
+  } catch (err) {
+    status.textContent = '';
+    toast(err.message, 'error');
+  }
+}
+async function connectCodeBuddy() {
+  const loginTab = window.open('about:blank', '_blank');
+  const button = $('codeBuddyLogin');
+  button.disabled = true;
+  try {
+    const started = await fetch('/api/providers/codebuddy/login', {method:'POST'});
+    const data = await started.json();
+    if (!started.ok) throw new Error(data.error?.message || data.message || 'Gagal memulai login CodeBuddy');
+    if (loginTab) loginTab.location = data.auth_url;
+    else window.open(data.auth_url, '_blank', 'noopener,noreferrer');
+    $('codeBuddyStatus').textContent = 'Menunggu persetujuan login…';
+    $('codeBuddyStatus').className = 'badge default';
+    const deadline = Date.now() + 5 * 60 * 1000;
+    while (Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, Math.max(1, Number(data.interval) || 5) * 1000));
+      const poll = await fetch('/api/providers/codebuddy/poll', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({state:data.state})
+      });
+      const result = await poll.json();
+      if (!poll.ok) throw new Error(result.error?.message || result.message || 'Gagal memeriksa login');
+      if (result.status === 'connected') {
+        if (loginTab && !loginTab.closed) loginTab.close();
+        toast('CodeBuddy Intl berhasil terhubung' + (result.account?.name ? `: ${result.account.name}` : ''), 'success');
+        await loadProviders();
+        return;
+      }
+      if (result.status === 'error') throw new Error(result.error || 'Login CodeBuddy gagal');
+    }
+    throw new Error('Waktu login habis. Coba login CodeBuddy lagi.');
+  } catch (err) {
+    toast(err.message, 'error');
+    $('codeBuddyStatus').textContent = 'Login gagal';
+    $('codeBuddyStatus').className = 'badge error';
+  } finally {
+    button.disabled = false;
+  }
 }
 async function setDefaultProvider() {
   await fetch('/api/providers/default', {
@@ -1828,6 +2000,25 @@ function fmtAge(sec) {
   return Math.floor(sec / 86400) + 'd lalu';
 }
 
+function gateConditionDetail(c) {
+  const parts = [c.detail];
+  if (c.status) parts.push('HTTP ' + c.status);
+  if (!c.ok && c.body) {
+    let message = '';
+    try {
+      const data = JSON.parse(c.body);
+      const error = data.error;
+      message = typeof error === 'string' ? error : [error?.type, error?.message].filter(Boolean).join(': ');
+      message ||= data.message || '';
+    } catch (_) {
+      message = c.body.slice(0, 500);
+    }
+    if (message) parts.push(message.slice(0, 800));
+  }
+  if (c.inconclusive) parts.push('Belum dapat diverifikasi; koneksi, kuota, atau upstream bermasalah.');
+  return parts.filter(Boolean).join(' · ') || '–';
+}
+
 async function loadGate() {
   let d;
   try { d = await (await fetch('/api/gate')).json(); }
@@ -1847,12 +2038,20 @@ async function loadGate() {
   $('gateSource').textContent = d.source;
   $('gateAge').textContent = fmtAge(d.age_seconds || 0);
   $('gateLatency').textContent = (d.latency_ms || 0) + ' ms';
+	const auto = d.automatic || {};
+	$('gateAutomatic').textContent = auto.enabled
+	  ? `Pemulihan otomatis aktif · ${auto.refreshing ? 'sedang memeriksa' : 'siap'} · ${auto.recovery_attempts || 0} percobaan pemulihan · ${auto.repairs || 0} perbaikan terverifikasi. ` + (auto.last_repair_source ? 'Perbaikan terakhir: ' + auto.last_repair_source + '. ' : '') + (auto.limits || '')
+	  : 'Pemulihan otomatis belum aktif.';
 
   // Profile table
   const rows = [
+	['Endpoint upstream', d.upstream_url || '–'],
+	['Model pemeriksaan', d.probe_model || '–'],
+	['Profil klien', d.client_format || 'v1'],
     ['User-Agent', d.user_agent || '–'],
     ['Versi minimum', d.min_version || '–'],
     ['Pola session', d.session_pattern || '–'],
+	['Format ID', d.identity ? `${d.identity.mode} · ${d.identity.timestamp_bytes} byte timestamp · ${d.identity.counter_bits} bit counter` : '–'],
     ['Wajib stream', d.requires_stream ? 'ya' : 'tidak'],
     ['Tool wajib', (d.required_tools || []).join(', ') || '–'],
     ['Tool tambahan', d.accepts_tool_superset ? 'ditoleransi' : 'tidak ditoleransi'],
@@ -1873,8 +2072,8 @@ async function loadGate() {
   $('gateConditionsBody').innerHTML = conds.map(c => `
     <tr>
       <td class="mono">${esc(c.name)}</td>
-      <td><span class="badge ${c.ok ? 'success' : 'error'}"><span class="dot"></span>${c.ok ? 'ok' : 'gagal'}</span></td>
-      <td class="muted">${esc(c.detail || (c.status ? 'HTTP ' + c.status : '–'))}</td>
+      <td><span class="badge ${c.ok ? 'success' : (c.inconclusive ? 'warning' : 'error')}"><span class="dot"></span>${c.ok ? 'ok' : (c.inconclusive ? 'belum pasti' : 'gagal')}</span></td>
+      <td class="muted">${esc(gateConditionDetail(c))}</td>
     </tr>`).join('') || '<tr><td colspan="3" class="empty">Belum ada hasil probe.</td></tr>';
 }
 
@@ -1913,13 +2112,13 @@ async function testGate() {
         <span class="muted">Tool wajib</span><span class="mono">${esc((d.required_tools || []).join(', '))}</span>
         <span class="muted">stream dipaksa</span><span class="mono">${esc(String(d.stream_forced))}</span>
         <span class="muted">Sumber profil</span><span class="mono">${esc(d.profile_source || '–')}</span>
-        <span class="muted">Lewat</span><span class="mono">${d.transport ? 'mihomo (proxy)' : 'langsung'}</span>
+        <span class="muted">Lewat</span><span class="mono">${d.transport ? 'engine proxy' : 'langsung'}</span>
         <span class="muted">Balasan</span><span class="mono">${esc(d.text || errText(d.error) || '–')}</span>
       </div>`;
     if (ok) {
       toast('Adaptasi bekerja', 'success');
     } else if (/FreeUsageLimit|Rate limit/i.test(d.error || '')) {
-      toast('IP egress kena rate limit. Pakai IP Rotation untuk pindah node, lalu tes lagi.',
+      toast('Zen memberi rate limit. Tunggu Retry-After atau cooldown sebelum mencoba lagi.',
             'warning', 'Bukan masalah adaptasi');
     } else if (d.error) {
       toast(errText(d.error), 'error', 'Tes gagal');
@@ -1935,10 +2134,14 @@ async function testGate() {
   }
 }
 /* ── IP Rotation (mihomo) ──────────────────────────────────────────────── */
+let proxyStatusLoading = false;
 async function loadMihomo() {
+  if (proxyStatusLoading) return;
+  proxyStatusLoading = true;
+  try {
   let d;
   try { d = await (await fetch('/api/mihomo')).json(); }
-  catch (e) { toast(errText(e) || 'Gagal memuat status mihomo', 'error'); return; }
+  catch (e) { toast(errText(e) || 'Gagal memuat status engine proxy', 'error'); return; }
 
   $('mihomoEnabled').checked = !!d.enabled;
   $('mihomoRotate').checked = d.rotate_on_limit !== false;
@@ -1949,6 +2152,13 @@ async function loadMihomo() {
     ok ? 'aktif' : (d.reachable ? 'sebagian' : 'tidak terjangkau')}`;
 
   $('mihomoVersion').textContent = d.version || '–';
+  const native = d.native_status;
+  $('proxyConnectionCard').classList.toggle('hidden', !!native);
+  $('nodebankRuntimeSummary').classList.toggle('hidden', !native);
+  if (native) {
+    const c = native.counts || {};
+    $('nodebankRuntimeSummary').textContent = `NodeBank: ${native.total || 0}/${native.candidate_cap ?? '–'} kandidat dimuat · ${native.unique_healthy_exit_ips ?? '–'} IP keluar unik sehat · ${c.healthy || 0} node lolos HTTPS dari VPS · ${c.pending || 0} menunggu · ${c.failed || 0} gagal · ${c.unsupported || 0} unsupported. ` + (native.pause_reason || native.source_error || 'Lolos HTTPS belum menjamin akses atau kuota model Zen; gunakan Tes ke Zen untuk menguji node aktif.');
+  }
   $('mihomoGroupName').textContent = d.group || '–';
   $('mihomoNode').textContent = d.node || '–';
   $('mihomoIP').textContent = d.egress_ip || '–';
@@ -1965,13 +2175,15 @@ async function loadMihomo() {
       <td><b>${esc(g.name)}</b></td>
       <td class="mono muted">${esc(g.now || '–')}</td>
       <td><span class="badge ${g.nodes > 0 ? 'success' : 'error'}">${g.nodes}</span></td>
+      <td>${(g.validated_ips || []).length ? `<details><summary>${g.validated_ips.length} IP lolos pemeriksaan VPS</summary><div class="mono">${g.validated_ips.map(ip => esc(ip)).join('<br>')}</div></details>` : (g.nodebank_ips || []).length ? `<details><summary>${g.nodebank_ips.length} kandidat · belum diuji VPS</summary><div class="mono" style="font-size:11px;line-height:1.8;margin-top:6px">${g.nodebank_ips.map(ip => esc(ip)).join('<br>')}</div><span class="muted" style="font-size:11px">Dikirim ${g.nodebank_received_at ? new Date(g.nodebank_received_at * 1000).toLocaleString() : '–'}</span></details>` : '<span class="muted">–</span>'}</td>
       <td class="row" style="justify-content:flex-end">
         <button class="btn sm secondary" onclick="useGroup('${esc(g.name)}')"
-          ${g.name === d.group ? 'disabled' : ''}>
-          ${g.name === d.group ? 'dipakai' : 'pakai'}
+          ${g.selectable === false || g.name === d.group ? 'disabled' : ''}>
+          ${g.selectable === false ? 'menunggu runtime' : (g.name === d.group ? 'dipakai' : 'pakai')}
         </button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="4" class="empty">Tidak ada group Selector.</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="5" class="empty">Tidak ada group Selector.</td></tr>';
+  } finally { proxyStatusLoading = false; }
 }
 
 async function saveMihomo() {
@@ -2006,7 +2218,8 @@ async function rotateMihomo() {
   try {
     const d = await (await fetch('/api/mihomo/rotate', { method: 'POST' })).json();
     if (d.error) toast(errText(d.error), 'error', 'Rotate gagal');
-    else toast(`${d.previous_ip || '?'} → ${d.egress_ip || '?'}`, 'success', 'IP berubah');
+    else toast(`${d.previous_ip || '?'} → ${d.egress_ip || '?'}`, d.ip_changed ? 'success' : 'info',
+      d.ip_change_verified ? (d.ip_changed ? 'IP berubah' : 'IP tetap sama') : 'Node diganti; perubahan IP belum terverifikasi');
     await loadMihomo();
   } catch (e) {
     toast(errText(e), 'error');
@@ -2020,22 +2233,26 @@ async function testMihomo() {
   const btn = $('mihomoTestBtn');
   btn.disabled = true;
   btn.innerHTML = '<span class="material-symbols-outlined spin">progress_activity</span>Testing…';
-  $('mihomoTestOut').innerHTML = '<span class="muted">Mengirim request lewat proxy…</span>';
+  $('mihomoTestOut').innerHTML = '<span class="muted">Menguji node aktif satu kali tanpa berpindah node…</span>';
   try {
     const d = await (await fetch('/api/mihomo/test', { method: 'POST' })).json();
     const ok = d.ok;
     $('mihomoTestOut').innerHTML = `
       <div class="row" style="gap:10px;margin-bottom:10px">
-        <span class="badge ${ok ? 'success' : 'error'}"><span class="dot"></span>${ok ? 'berhasil' : 'gagal'}</span>
+        <span class="badge ${ok ? 'success' : 'error'}"><span class="dot"></span>${ok ? 'Zen diterima' : d.proxy_ok ? 'Zen belum terverifikasi' : 'koneksi gagal'}</span>
         <span class="muted mono">${d.elapsed_ms || 0}ms</span>
       </div>
       <div class="kv">
+        <span class="muted">Node yang diuji</span><span class="mono">${esc(d.node || '–')}</span>
+        <span class="muted">Model tes</span><span class="mono">${esc(d.model || '–')}</span>
         <span class="muted">IP egress</span><span class="mono">${esc(d.egress_ip || '–')}</span>
+        <span class="muted">Koneksi proxy</span><span>${d.proxy_ok ? 'berhasil' : 'belum berhasil'}</span>
+        <span class="muted">Mode tes</span><span>Satu node, tanpa rotasi</span>
         <span class="muted">Status Zen</span><span class="mono">${esc(String(d.status || '–'))}</span>
         ${d.hint ? `<span class="muted">Catatan</span><span>${esc(d.hint)}</span>` : ''}
         ${d.error ? `<span class="muted">Error</span><span style="color:var(--danger)">${esc(d.error)}</span>` : ''}
       </div>`;
-    toast(ok ? 'Proxy bisa dipakai Zen' : 'Proxy gagal', ok ? 'success' : 'error');
+    toast(ok ? 'Request tes diterima Zen' : d.proxy_ok ? 'Koneksi proxy berhasil; periksa hasil Zen' : 'Koneksi proxy gagal', ok ? 'success' : 'error');
   } catch (e) {
     $('mihomoTestOut').innerHTML = `<span style="color:var(--danger)">${esc(e.message)}</span>`;
   } finally {
@@ -2063,6 +2280,8 @@ window.addEventListener('message', (e) => {
   showTab('connect');
 })();
 setInterval(loadStats, 15000);
+setInterval(() => { if (!$('tab-mihomo').classList.contains('hidden')) loadMihomo(); }, 15000);
+setInterval(() => { if (!document.hidden && !$('tab-gate').classList.contains('hidden')) loadGate(); }, 10000);
 </script>
 </body>
 </html>

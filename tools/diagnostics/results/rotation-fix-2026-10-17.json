@@ -1,0 +1,45 @@
+{
+  "artifact_sha256": "07c33ed9c566798229a2b6d90383cbc1640235ff9d76ab19e21697c9ecde2abb",
+  "node": "DIRECT",
+  "native_CAS_supported": true,
+  "healthy_ips": 566,
+  "ui_has_verified_ip_comparison": true,
+  "gate_user_agent": "opencode/latest/2.0.29/cli",
+  "services": {
+    "mot-router": "active",
+    "mot-nodebank-runtime": "active",
+    "mot-nodebank": "active",
+    "guard": "active"
+  },
+  "source_sha256": "15d964920f2cf917a513d55e57156583f6b538e70413c6dc1dd643a025b6bdce",
+  "backup": "/var/backups/mot-router/rotation-fix-20261017T130258Z",
+  "fixes": [
+    "Skip candidates with the same known exit IP as the current node",
+    "Use expected selection to prevent overwriting a newer native runtime selection",
+    "Report IP changes only when valid before and after IPs are available",
+    "Retry initial stream closure or timeout using existing bounded retry policy"
+  ],
+  "validation": {
+    "short_race_suite": "passed",
+    "dashboard_javascript_syntax": "passed",
+    "runtime_restarted": false,
+    "selected_node_preserved": true,
+    "production_rotation_performed": false,
+    "production_inference_for_deployment": false,
+    "zen_pool_api_status": 404
+  },
+  "limitations": [
+    "403 FreeTierError remains unresolved; 401, 403 and 429 do not trigger IP rotation",
+    "Before IP is a cached observed result; unknown IPs cannot verify a change",
+    "Separate SSE error payload handling issue from the local 1000-request fixture remains unresolved"
+  ],
+  "native_client_comparison": {
+    "version": "2.0.29",
+    "vps_egress": "403 FreeTierError",
+    "laptop_direct": "success",
+    "evidence": [
+      "opencode-native-vps-egress-deepseek-2026-10-17.json",
+      "opencode-native-vps-egress-deepseek-laptop-direct-2026-10-17.json"
+    ]
+  }
+}

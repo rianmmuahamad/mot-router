@@ -1,0 +1,6 @@
+{
+  "model": "glm-5.3-flash-free",
+  "exit_code": 0,
+  "stdout": "{\"type\":\"step_start\",\"timestamp\":1792219659562,\"sessionID\":\"ses_eb7624aedffeYdQCrV4hyaqRqB\",\"part\":{\"id\":\"prt_1489dbd2a0012QdlLwk0NIemvu\",\"sessionID\":\"ses_eb7624aedffeYdQCrV4hyaqRqB\",\"messageID\":\"msg_1489dbc75001wrINe0IIgauowW\",\"type\":\"step-start\"}}\n{\"type\":\"step_start\",\"timestamp\":1792219663936,\"sessionID\":\"ses_eb7624aedffeYdQCrV4hyaqRqB\",\"part\":{\"id\":\"prt_1489dce400012nvhxqgaa8rtZJ\",\"sessionID\":\"ses_eb7624aedffeYdQCrV4hyaqRqB\",\"messageID\":\"msg_1489dbc75001wrINe0IIgauowW\",\"type\":\"step-start\"}}\n{\"type\":\"text\",\"timestamp\":1792219664627,\"sessionID\":\"ses_eb7624aedffeYdQCrV4hyaqRqB\",\"part\":{\"id\":\"prt_1489dbc75001wrINe0IIgauowW_text-0\",\"sessionID\":\"ses_eb7624aedffeYdQCrV4hyaqRqB\",\"messageID\":\"msg_1489dbc75001wrINe0IIgauowW\",\"type\":\"text\",\"text\":\"GLM_NATIVE_OK\",\"time\":{\"start\":1792219661233,\"end\":1792219664627}}}\n",
+  "stderr": ""
+}

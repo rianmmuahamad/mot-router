@@ -1,0 +1,27 @@
+[Unit]
+Description=motgate — user portal and endpoint for mot-router
+After=network-online.target guard.service
+Wants=guard.service
+
+[Service]
+Type=simple
+User=motgate
+Group=motgate
+WorkingDirectory=/opt/mot-router/tools/motgate
+EnvironmentFile=/etc/mot-router/motgate.env
+ExecStart=/opt/mot-router/tools/motgate/motgate \
+  --host 127.0.0.1 \
+  --port 8790 \
+  --data /var/lib/motgate \
+  --upstream http://127.0.0.1:8791 \
+  --public-url https://arbyte.coddx.store
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+StateDirectory=motgate
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

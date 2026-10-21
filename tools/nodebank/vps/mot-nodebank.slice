@@ -1,0 +1,10 @@
+[Unit]
+Description=Combined resource budget for NodeBank and native runtime
+
+[Slice]
+MemoryAccounting=true
+MemoryHigh=256M
+MemoryMax=384M
+MemorySwapMax=0
+CPUQuota=100%
+TasksMax=128

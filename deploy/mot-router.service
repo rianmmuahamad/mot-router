@@ -1,0 +1,19 @@
+[Unit]
+Description=mot-router — LLM router and rotation gateway for OpenCode Zen
+After=network-online.target mihomo-farm.service
+Wants=mihomo-farm.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/mot-router
+Environment=DATA_DIR=/var/lib/mot-router
+Environment=MOT_PROVIDER=opencode-zen
+ExecStart=/opt/mot-router/mot-router --host 127.0.0.1 --port 8787 --data /var/lib/mot-router
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

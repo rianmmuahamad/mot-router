@@ -1,0 +1,79 @@
+{
+  "last_403": {
+    "id": 28832,
+    "ts_ms": 1792225621791,
+    "model": "deepseek-v4.1-flash-free",
+    "status": 403,
+    "latency_ms": 17868,
+    "error": "{\"type\":\"error\",\"error\":{\"type\":\"FreeTierError\",\"message\":\"OpenCode's free tier can only be used from within OpenCode. Download it at https://opencode.ai and keep building.\"}}"
+  },
+  "status_counts_since_403": {
+    "403": 1,
+    "429": 36
+  },
+  "preceding_requests": [
+    {
+      "id": 28827,
+      "ts_ms": 1792225469247,
+      "model": "deepseek-v4.1-flash-free",
+      "status": 200,
+      "input_tokens": 61253,
+      "output_tokens": 4181
+    },
+    {
+      "id": 28828,
+      "ts_ms": 1792225510691,
+      "model": "deepseek-v4.1-flash-free",
+      "status": 200,
+      "input_tokens": 65682,
+      "output_tokens": 4807
+    },
+    {
+      "id": 28829,
+      "ts_ms": 1792225571126,
+      "model": "deepseek-v4.1-flash-free",
+      "status": 200,
+      "input_tokens": 67246,
+      "output_tokens": 8091
+    },
+    {
+      "id": 28830,
+      "ts_ms": 1792225599713,
+      "model": "deepseek-v4.1-flash-free",
+      "status": 200,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "id": 28831,
+      "ts_ms": 1792225603339,
+      "model": "deepseek-v4.1-flash-free",
+      "status": 429,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "id": 28832,
+      "ts_ms": 1792225621791,
+      "model": "deepseek-v4.1-flash-free",
+      "status": 403,
+      "input_tokens": 0,
+      "output_tokens": 0
+    }
+  ],
+  "active_profile": {
+    "user_agent": "opencode/latest/2.0.29/cli",
+    "client_format": "v2",
+    "verified_version": "2.0.29",
+    "verdict": "baseline rejected with 429",
+    "source": "fallback"
+  },
+  "latest_probe_conditions": [
+    {
+      "name": "baseline",
+      "status": 429,
+      "inconclusive": true,
+      "body": "{\"type\":\"error\",\"error\":{\"type\":\"FreeUsageLimitError\",\"message\":\"Rate limit exceeded. Please try again later.\"}}"
+    }
+  ]
+}

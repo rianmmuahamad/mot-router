@@ -7,29 +7,31 @@
 // self-describing endpoint. So the only reliable way to learn what the gate
 // wants is to send a request that is known-good and see whether it is accepted.
 //
-// The probe is deliberately cheap: a tiny non-streaming call that the gate
-// rejects before any generation happens, so it costs no output tokens.
+// Probes use bounded streaming requests. A successful verdict requires actual
+// output and confirmed termination, rather than an HTTP status alone.
 package gate
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/rian/mot-router/internal/streamwire"
 )
 
 // Condition is one requirement the gate enforces.
 type Condition struct {
-	Name   string `json:"name"`
-	OK     bool   `json:"ok"`
-	Detail string `json:"detail"`
+	Name         string `json:"name"`
+	OK           bool   `json:"ok"`
+	Detail       string `json:"detail"`
+	Inconclusive bool   `json:"inconclusive,omitempty"`
 	// Status and Body are the raw upstream verdict, kept for the dashboard.
 	Status int    `json:"status"`
 	Body   string `json:"body,omitempty"`
@@ -37,6 +39,13 @@ type Condition struct {
 
 // Profile is the complete request shape the gate currently accepts.
 type Profile struct {
+	ProbeModel       string            `json:"probe_model,omitempty"`
+	ToolDescriptions map[string]string `json:"tool_descriptions,omitempty"`
+	BaseURL          string            `json:"base_url,omitempty"`
+	ClientFormat     string            `json:"client_format,omitempty"`
+	VerifiedVersion  string            `json:"verified_version,omitempty"`
+	Identity         IdentityPolicy    `json:"identity"`
+	RepairSource     string            `json:"repair_source,omitempty"`
 	// UserAgent must keep `opencode/<version>` as its leading token.
 	UserAgent string `json:"user_agent"`
 	// MinVersion is the lowest `opencode/<x.y.z>` accepted.
@@ -75,8 +84,8 @@ var KnownToolNames = []string{
 
 // Defaults captured from the official CLI. Used when a probe cannot run.
 const (
-	DefaultUserAgent    = "opencode/1.18.31"
-	DefaultMinVersion   = "1.18.0"
+	DefaultUserAgent    = "opencode/1.19.0"
+	DefaultMinVersion   = "1.19.0"
 	DefaultSessionHex   = 12
 	DefaultSessionAlnum = 14
 )
@@ -84,13 +93,15 @@ const (
 // Fallback returns the last known-good profile.
 func Fallback() *Profile {
 	return &Profile{
+		ClientFormat:        ClientV1,
+		Identity:            DefaultIdentity(),
 		UserAgent:           DefaultUserAgent,
 		MinVersion:          DefaultMinVersion,
 		SessionPrefix:       "ses_",
 		SessionHex:          DefaultSessionHex,
 		SessionAlnum:        DefaultSessionAlnum,
 		RequiresStream:      true,
-		RequiredTools:       []string{"bash", "edit", "glob", "grep", "read"},
+		RequiredTools:       []string{"read"},
 		AcceptsToolSuperset: true,
 		CheckedAt:           time.Now(),
 		Verdict:             "fallback",
@@ -98,37 +109,17 @@ func Fallback() *Profile {
 	}
 }
 
-// SessionID mints an id in the shape the gate checks. Deterministic per seed so
-// prompt caching and upstream routing stay pinned to one conversation.
-func SessionID(seed string, prefix string, hexLen, alnumLen int) string {
-	if prefix == "" {
-		prefix = "ses_"
-	}
-	if hexLen <= 0 {
-		hexLen = DefaultSessionHex
-	}
-	if alnumLen <= 0 {
-		alnumLen = DefaultSessionAlnum
-	}
-	sum := md5.Sum([]byte(seed))
-	h := hex.EncodeToString(sum[:])
-	for len(h) < hexLen {
-		h += h
-	}
-
-	sum2 := md5.Sum([]byte("alnum:" + seed))
-	a := hex.EncodeToString(sum2[:])
-	for len(a) < alnumLen {
-		a += a
-	}
-	return prefix + h[:hexLen] + a[:alnumLen]
-}
-
 // Prober runs the checks.
 type Prober struct {
-	BaseURL  string
-	Model    string
-	ToolPool []string
+	Resolve          func(context.Context) (*OfficialHints, error)
+	ReferenceVersion string
+	seed             *Profile
+	policy           IdentityPolicy
+	format           string
+	BaseURL          string
+	endpoint         string
+	Model            string
+	ToolPool         []string
 	// ExtraUA is appended after the version token, mimicking the real CLI.
 	ExtraUA string
 
@@ -174,32 +165,46 @@ func (p *Prober) rotate(ctx context.Context) bool {
 // NewProber builds a prober with production defaults.
 func NewProber(baseURL, model string) *Prober {
 	if baseURL == "" {
-		baseURL = "https://opencode.ai/zen/v1"
+		baseURL = DefaultBaseURL
 	}
 	if model == "" {
-		model = "muse-spark-1.3-contributor-free"
+		model = DefaultProbeModel
 	}
 	return &Prober{
 		BaseURL:  strings.TrimSuffix(baseURL, "/"),
 		Model:    model,
-		ToolPool: KnownToolNames,
+		ToolPool: nativeToolNames(ClientV1),
 		ExtraUA:  "ai-sdk/provider-utils/4.0.40 runtime/bun/1.3.14",
 	}
+}
+
+func (p *Prober) forModel(model string) *Prober {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	copy := NewProber(p.BaseURL, model)
+	copy.ToolPool = append([]string(nil), p.ToolPool...)
+	copy.ExtraUA, copy.Resolve = p.ExtraUA, p.Resolve
+	copy.ReferenceVersion = p.ReferenceVersion
+	copy.HTTP, copy.Rotate = p.HTTP, p.Rotate
+	return copy
 }
 
 // probeBody builds the minimal request used for gating checks. It is tiny so a
 // rejected probe costs nothing and an accepted one costs almost nothing.
 func (p *Prober) probeBody(tools []string, stream bool) map[string]any {
+	p.mu.RLock()
+	format := p.format
+	p.mu.RUnlock()
 	ts := make([]map[string]any, 0, len(tools))
 	for _, n := range tools {
-		ts = append(ts, map[string]any{
-			"type": "function", "name": n, "description": "probe",
-			"parameters": map[string]any{"type": "object", "properties": map[string]any{}},
-		})
+		ts = append(ts, ProbeTool(n, format))
 	}
 	b := map[string]any{
 		"model": p.Model,
 		"input": []map[string]any{{
+			"role":    "developer",
+			"content": []map[string]any{{"type": "input_text", "text": "This is a connectivity check. Reply OK without calling tools."}},
+		}, {
 			"role":    "user",
 			"content": []map[string]any{{"type": "input_text", "text": "hi"}},
 		}},
@@ -210,6 +215,31 @@ func (p *Prober) probeBody(tools []string, stream bool) map[string]any {
 	if len(ts) > 0 {
 		b["tools"] = ts
 		b["tool_choice"] = "auto"
+	}
+	if UsesChatCompletions(p.Model) {
+		chat := map[string]any{
+			"model": p.Model, "stream": stream,
+			"messages": []map[string]any{
+				{"role": "system", "content": "This is a connectivity check. Reply OK without calling tools."},
+				{"role": "user", "content": "hi"},
+			},
+			"max_tokens": 16,
+		}
+		if format == ClientV2 {
+			delete(chat, "max_tokens")
+			chat["max_completion_tokens"] = 16
+		}
+		if len(ts) > 0 {
+			chatTools := make([]map[string]any, 0, len(ts))
+			for _, tool := range ts {
+				chatTools = append(chatTools, map[string]any{"type": "function", "function": map[string]any{
+					"name": tool["name"], "description": tool["description"], "parameters": tool["parameters"],
+				}})
+			}
+			chat["tools"] = chatTools
+			chat["tool_choice"] = "auto"
+		}
+		return chat
 	}
 	return b
 }
@@ -229,10 +259,9 @@ type verdict struct {
 func (p *Prober) send(ctx context.Context, ua, session string, tools []string, stream bool) verdict {
 	v := p.sendOnce(ctx, ua, session, tools, stream)
 
-	// A rate limit (429) or a dropped connection (no HTTP response) is tied to
-	// the exit IP, not to the request. Try one other node before believing it.
-	ipTied := v.status == http.StatusTooManyRequests ||
-		(v.err != nil && v.status == 0)
+	// Only a failed connection may try another node. Quota/access denials
+	// are returned as received and never trigger an IP switch.
+	ipTied := v.err != nil && v.status == 0
 	if !ipTied {
 		return v
 	}
@@ -248,17 +277,28 @@ func (p *Prober) sendOnce(ctx context.Context, ua, session string, tools []strin
 	if err != nil {
 		return verdict{err: err}
 	}
+	p.mu.RLock()
+	endpoint := p.endpoint
+	p.mu.RUnlock()
+	if endpoint == "" {
+		endpoint = p.BaseURL
+	}
+	path := "/responses"
+	if UsesChatCompletions(p.Model) {
+		path = "/chat/completions"
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		p.BaseURL+"/responses", strings.NewReader(string(payload)))
+		endpoint+path, strings.NewReader(string(payload)))
 	if err != nil {
 		return verdict{err: err}
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "text/event-stream")
-	req.Header.Set("User-Agent", ua)
-	req.Header.Set("x-opencode-client", "cli")
-	req.Header.Set("x-opencode-project", "global")
-	req.Header.Set("x-opencode-session", session)
+	p.mu.RLock()
+	policy := p.policy
+	format := p.format
+	p.mu.RUnlock()
+	for k, v := range ClientHeaders(ua, session, RequestIDWithPolicy(session, policy), format) {
+		req.Header.Set(k, v)
+	}
 	req.Header.Set("Authorization", "Bearer public")
 
 	resp, err := p.httpClient().Do(req)
@@ -266,12 +306,15 @@ func (p *Prober) sendOnce(ctx context.Context, ua, session string, tools []strin
 		return verdict{err: err}
 	}
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-	// Drain any streamed content so the connection can be reused.
-	if resp.StatusCode == http.StatusOK {
-		io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<20))
+	body, readErr := io.ReadAll(io.LimitReader(resp.Body, (1<<20)+1))
+	if len(body) > 1<<20 {
+		return verdict{status: resp.StatusCode, err: fmt.Errorf("probe response exceeds 1 MiB")}
 	}
-	return verdict{status: resp.StatusCode, body: strings.TrimSpace(string(body))}
+	if readErr == nil && resp.StatusCode == http.StatusOK && !streamwire.ValidCompletion(body) {
+		readErr = fmt.Errorf("probe returned HTTP 200 without completed output")
+	}
+	return verdict{status: resp.StatusCode, body: strings.TrimSpace(string(body)), err: readErr}
+
 }
 
 // accepted reports whether a verdict proves the request satisfied the gate.
@@ -282,7 +325,7 @@ func (p *Prober) sendOnce(ctx context.Context, ua, session string, tools []strin
 // report whatever it tested first as working, which is how a stale version floor
 // gets recorded. Use inconclusive for that case.
 func accepted(v verdict) bool {
-	return v.err == nil && v.status == http.StatusOK
+	return v.err == nil && v.status == http.StatusOK && streamwire.ValidCompletion([]byte(v.body))
 }
 
 // inconclusive reports whether the upstream refused to answer on grounds that
@@ -299,7 +342,7 @@ func inconclusive(v verdict) bool {
 	if v.err != nil {
 		return true
 	}
-	return v.status == http.StatusTooManyRequests
+	return v.status == http.StatusTooManyRequests || v.status == http.StatusRequestTimeout || v.status >= 500
 }
 
 // Probe runs the full check sequence and returns the discovered profile.
@@ -315,15 +358,66 @@ func (p *Prober) Probe(ctx context.Context) *Profile {
 	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
 
-	goodSession := SessionID("gate-probe", "ses_", DefaultSessionHex, DefaultSessionAlnum)
-	baselineUA := DefaultUserAgent + " " + p.ExtraUA
+	p.mu.RLock()
+	seed := p.seed
+	p.mu.RUnlock()
+	if seed != nil {
+		*prof = *seed
+		prof.Conditions = nil
+		prof.Source = "probe"
+		prof.CheckedAt = started
+		prof.RepairSource = ""
+	}
+	if prof.BaseURL == "" && IsOfficialEndpoint(p.BaseURL) {
+		prof.BaseURL = p.BaseURL
+	}
+	if prof.ClientFormat == "" {
+		prof.ClientFormat = ClientV1
+	}
+	prof.ProbeModel = p.Model
+	// A successful V1 baseline does not establish compatibility with the
+	// installed V2 client. Prefer the recognized current official contract
+	// before checking inference, including when a legacy profile is cached.
+	resolver := p.Resolve
+	var resolvedHints []*OfficialHints
+	if resolver == nil && IsOfficialEndpoint(p.BaseURL) {
+		resolver = func(ctx context.Context) (*OfficialHints, error) { return officialHints(ctx, p.ReferenceVersion) }
+	}
+	if resolver != nil {
+		hint, err := resolver(ctx)
+		resolvedHints = append(resolvedHints, hint)
+		if err != nil {
+			prof.Conditions = append(prof.Conditions, Condition{Name: "official_metadata", Inconclusive: true, Detail: err.Error()})
+		} else if hint != nil && hint.ClientFormat == ClientV2 && hint.Identity.Valid() && versionPattern.MatchString(hint.Version) && versionFromUA(hint.UserAgent) == hint.Version {
+			prof.ClientFormat, prof.Identity, prof.UserAgent = hint.ClientFormat, hint.Identity, hint.UserAgent
+			if IsOfficialEndpoint(p.BaseURL) {
+				prof.BaseURL = DefaultBaseURL
+			}
+			prof.RepairSource = "official @opencode/cli@" + hint.Version
+		}
+	}
+	p.setProbeProfile(prof)
+	goodSession := SessionIDWithPolicy("gate-probe", prof.Identity)
+	baselineUA := prof.UserAgent
+	if prof.ClientFormat != ClientV2 && !strings.Contains(baselineUA, " ") {
+		baselineUA += " " + p.ExtraUA
+	}
 
-	// 1. Baseline: known-good shape with the full tool pool. If this fails, the
-	//    gate changed in a way this prober cannot describe, so fall back.
-	base := p.send(ctx, baselineUA, goodSession, p.ToolPool, true)
+	// A historical request shape is only a candidate baseline. It becomes
+	// verified when upstream actually accepts it; a tool count proves nothing.
+	base := p.send(ctx, baselineUA, goodSession, p.probeTools(), true)
+	if !accepted(base) && repairable(base.status, base.body) && prof.ClientFormat != ClientV2 {
+		if repaired, session, v := p.recoverBaseline(ctx, prof, resolvedHints...); repaired != nil {
+			prof = repaired
+			goodSession = session
+			baselineUA = prof.UserAgent
+			base = v
+		}
+	}
 	prof.Conditions = append(prof.Conditions, Condition{
 		Name: "baseline", OK: accepted(base), Status: base.status, Body: base.body,
-		Detail: fmt.Sprintf("known-good request with %d tools", len(p.ToolPool)),
+		Detail:       fmt.Sprintf("request uji %s dengan %d tools (%s)", p.Model, len(p.probeTools()), prof.ClientFormat),
+		Inconclusive: inconclusive(base),
 	})
 	if !accepted(base) {
 		if base.err != nil {
@@ -336,56 +430,44 @@ func (p *Prober) Probe(ctx context.Context) *Profile {
 		return prof
 	}
 
-	// 2. User-Agent: the leading token must be `opencode/<version>`.
-	uaOK := p.send(ctx, "mot-router/1.0", goodSession, p.ToolPool, true)
-	prof.Conditions = append(prof.Conditions, Condition{
-		Name: "user_agent_prefix", OK: !accepted(uaOK), Status: uaOK.status, Body: uaOK.body,
-		Detail: "a non-opencode User-Agent must be refused",
-	})
+	// Keep the complete accepted contract. A reduced roster measured on one
+	// request/model must not become a universal minimum for other models.
+	required := p.probeTools()
+	prof.RequiredTools = append([]string(nil), required...)
+	prof.AcceptsToolSuperset = false // extra caller tools are preserved, not presumed verified
+	prof.MinVersion = ""
+	prof.Conditions = append(prof.Conditions,
+		Condition{Name: "required_tools", OK: true, Detail: "roster lengkap; tanpa reduksi: " + strings.Join(required, ", ")},
+		Condition{Name: "client_version", OK: true, Detail: versionFromUA(baselineUA) + "; versi minimum tidak diuji"},
+	)
 
-	// 3. Session shape: confirm a malformed id is refused, so we know the check
-	//    is still live and our own minted ids are the reason we pass.
-	sessBad := p.send(ctx, baselineUA, "sess_not-the-right-shape", p.ToolPool, true)
-	prof.Conditions = append(prof.Conditions, Condition{
-		Name: "session_shape", OK: !accepted(sessBad), Status: sessBad.status, Body: sessBad.body,
-		Detail: "a malformed session id must be refused",
-	})
-
-	// 4. Streaming: confirm it is still mandatory.
-	noStream := p.send(ctx, baselineUA, goodSession, p.ToolPool, false)
-	prof.Conditions = append(prof.Conditions, Condition{
-		Name: "stream_required", OK: !accepted(noStream), Status: noStream.status, Body: noStream.body,
-		Detail: "a non-streaming body must be refused",
-	})
-
-	// 5. Tools: find the smallest set the gate accepts, then confirm extra names
-	//    are tolerated (that is what makes injection safe).
-	required := p.discoverRequiredTools(ctx, baselineUA, goodSession)
-	prof.RequiredTools = required
-	prof.Conditions = append(prof.Conditions, Condition{
-		Name: "required_tools", OK: len(required) > 0,
-		Detail: strings.Join(required, ", "),
-	})
-
-	supersetOK := p.send(ctx, baselineUA, goodSession, append(append([]string{}, required...), "mot_router_probe_tool"), true)
-	prof.AcceptsToolSuperset = accepted(supersetOK)
-	prof.Conditions = append(prof.Conditions, Condition{
-		Name: "tool_superset", OK: prof.AcceptsToolSuperset, Status: supersetOK.status,
-		Detail: "extra tool names beyond the required set must be tolerated",
-	})
-
-	// 6. Version floor: binary-search the lowest accepted minor version.
-	prof.MinVersion = p.discoverMinVersion(ctx, goodSession)
-	prof.Conditions = append(prof.Conditions, Condition{
-		Name: "min_version", OK: prof.MinVersion != "", Detail: prof.MinVersion,
-	})
-
-	prof.UserAgent = "opencode/" + prof.MinVersion + " " + p.ExtraUA
+	// Keep the accepted client version; never search for older versions.
+	prof.UserAgent = baselineUA
+	prof.VerifiedVersion = versionFromUA(baselineUA)
 	prof.SessionPrefix = "ses_"
-	prof.SessionHex = DefaultSessionHex
-	prof.SessionAlnum = DefaultSessionAlnum
+	prof.SessionHex = prof.Identity.Normalized().TimestampBytes * 2
+	prof.SessionAlnum = prof.Identity.Normalized().SuffixLength
 	prof.RequiresStream = true
+	prof.ToolDescriptions = make(map[string]string)
+	// The full baseline verified these descriptions together. Keep all of
+	// them: extra known tools also need their verified description when a
+	// client declares them, even though only a subset is mandatory.
+	for _, name := range p.probeTools() {
+		tool := ProbeTool(name, prof.ClientFormat)
+		prof.ToolDescriptions[name], _ = tool["description"].(string)
+	}
+	verified := p.send(ctx, baselineUA, goodSession, required, true)
+	prof.Conditions = append(prof.Conditions, Condition{Name: "profile_verified", OK: accepted(verified), Status: verified.status, Body: verified.body, Inconclusive: inconclusive(verified), Detail: "profil akhir diuji sebelum dipakai"})
+	if !accepted(verified) {
+		prof.Source = "fallback"
+		prof.Verdict = "final profile verification failed"
+		prof.LatencyMs = time.Since(started).Milliseconds()
+		return prof
+	}
 	prof.Verdict = "ok"
+	if prof.RepairSource == "" && seed != nil && !slices.Equal(seed.RequiredTools, required) {
+		prof.RepairSource = "verified complete tool roster for " + p.Model
+	}
 	prof.LatencyMs = time.Since(started).Milliseconds()
 	return prof
 }
@@ -396,12 +478,18 @@ func (p *Prober) Probe(ctx context.Context) *Profile {
 // removal that still passes. That yields a minimal set without assuming the
 // current five names are still correct.
 func (p *Prober) discoverRequiredTools(ctx context.Context, ua, session string) []string {
-	candidates := append([]string{}, p.ToolPool...)
+	candidates := p.probeTools()
 
 	// Fast path: if the full pool is not accepted, the gate wants something we
 	// do not have, or the IP is rate limited. Either way, report the known set so
 	// the caller still has a usable default.
 	if !accepted(p.send(ctx, ua, session, candidates, true)) {
+		p.mu.RLock()
+		v2 := p.format == ClientV2
+		p.mu.RUnlock()
+		if v2 {
+			return []string{"shell", "edit", "glob", "grep", "read"}
+		}
 		return []string{"bash", "edit", "glob", "grep", "read"}
 	}
 
@@ -473,10 +561,15 @@ func (p *Prober) discoverRequiredTools(ctx context.Context, ua, session string) 
 // results are skipped rather than read as acceptance; if the whole scan is
 // inconclusive the caller keeps the known-good default instead of recording a
 // version that was never actually validated.
-func (p *Prober) discoverMinVersion(ctx context.Context, session string) string {
+func (p *Prober) discoverMinVersion(ctx context.Context, session string, extra ...string) string {
 	// Oldest first, so the first definitive acceptance is the floor.
 	candidates := []string{
-		"1.16.0", "1.17.0", "1.17.9", "1.18.0", "1.18.1", "1.18.31",
+		"1.16.0", "1.17.0", "1.17.9", "1.18.0", "1.18.1", "1.18.31", "1.19.0",
+	}
+	for _, version := range extra {
+		if versionPattern.MatchString(version) {
+			candidates = append(candidates, version)
+		}
 	}
 
 	sawRejection := false
@@ -503,9 +596,19 @@ func (p *Prober) discoverMinVersion(ctx context.Context, session string) string 
 
 // Cache keeps the last good profile and refreshes it in the background.
 type Cache struct {
-	mu      sync.RWMutex
-	current *Profile
-	prober  *Prober
+	recovering       bool
+	recoveryDone     chan struct{}
+	done             chan struct{}
+	recoveryAt       time.Time
+	recoveryAttempts int
+	repairs          int
+	lastRepair       time.Time
+	lastRepairSource string
+	mu               sync.RWMutex
+	current          *Profile
+	lastGood         *Profile
+	lastAttempt      time.Time
+	prober           *Prober
 	// TTL is how long a profile is trusted before a refresh.
 	TTL time.Duration
 	// OnUpdate is called after each successful refresh, for dashboard wiring.
@@ -526,9 +629,15 @@ func NewCache(p *Prober, ttl time.Duration) *Cache {
 func (c *Cache) Current(ctx context.Context) *Profile {
 	c.mu.RLock()
 	cur := c.current
+	lastAttempt := c.lastAttempt
 	c.mu.RUnlock()
 
 	if cur != nil && cur.Source == "probe" && time.Since(cur.CheckedAt) < c.TTL {
+		return cur
+	}
+	// A failed probe must not turn every test into another discovery run.
+	// Explicit Refresh still retries immediately when requested by the user.
+	if cur != nil && cur.Source == "fallback" && !lastAttempt.IsZero() && time.Since(lastAttempt) < time.Minute {
 		return cur
 	}
 	return c.Refresh(ctx)
@@ -536,6 +645,16 @@ func (c *Cache) Current(ctx context.Context) *Profile {
 
 // Refresh runs a probe and stores the result. It never returns nil.
 func (c *Cache) Refresh(ctx context.Context) *Profile {
+	return c.RefreshModel(ctx, c.ProbeModel())
+}
+
+// RefreshModel verifies the model under repair, using an isolated prober.
+func (c *Cache) RefreshModel(ctx context.Context, model string) *Profile {
+	if model == "" || len(model) > 256 || strings.ContainsAny(model, "\r\n\t") {
+		p := Fallback()
+		p.Verdict = "invalid probe model"
+		return p
+	}
 	c.mu.Lock()
 	if c.inflight {
 		cur := c.current
@@ -543,27 +662,44 @@ func (c *Cache) Refresh(ctx context.Context) *Profile {
 		return cur
 	}
 	c.inflight = true
+	c.done = make(chan struct{})
+	seed := c.current
 	c.mu.Unlock()
 
 	defer func() {
 		c.mu.Lock()
 		c.inflight = false
+		close(c.done)
 		c.mu.Unlock()
 	}()
 
-	prof := c.prober.Probe(ctx)
+	prober := c.prober.forModel(model)
+	prober.setSeed(seed)
+	prof := prober.Probe(ctx)
 	if prof == nil {
 		prof = Fallback()
 	}
 
 	c.mu.Lock()
-	// Keep the previous good profile's timestamps if this probe failed, so the
-	// dashboard can show that the last check was unhealthy without losing the
-	// working configuration.
-	if prof.Source == "fallback" && c.current != nil && c.current.Source == "probe" {
-		prof.RequiredTools = c.current.RequiredTools
-		prof.UserAgent = c.current.UserAgent
-		prof.MinVersion = c.current.MinVersion
+	c.lastAttempt = time.Now()
+	if prof.Source == "probe" && prof.Verdict == "ok" {
+		c.lastGood = prof
+		if prof.RepairSource != "" {
+			c.repairs++
+			c.lastRepair = time.Now()
+			c.lastRepairSource = prof.RepairSource
+		}
+	} else if c.lastGood != nil {
+		// Keep all verified adaptation settings across successive failures,
+		// while reporting the latest failed attempt's actual diagnostics.
+		working := *c.lastGood
+		working.Source = prof.Source
+		working.Verdict = prof.Verdict
+		working.CheckedAt = prof.CheckedAt
+		working.LatencyMs = prof.LatencyMs
+		working.Conditions = prof.Conditions
+		working.ProbeModel = prof.ProbeModel
+		prof = &working
 	}
 	c.current = prof
 	c.mu.Unlock()

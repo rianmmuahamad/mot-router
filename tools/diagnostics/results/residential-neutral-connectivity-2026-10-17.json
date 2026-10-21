@@ -1,0 +1,12 @@
+{
+  "mode": "one neutral HTTPS connectivity check; no AI endpoint; no retry",
+  "proxy_sessions_tested": 1,
+  "nodebank_scan_paused": true,
+  "router_traffic_changed": false,
+  "http_status": 200,
+  "response_body_bytes": 13,
+  "tls_certificate_verified": true,
+  "egress_ip": "136.56.103.74",
+  "ok": true,
+  "elapsed_ms": 1428
+}

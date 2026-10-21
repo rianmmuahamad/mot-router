@@ -1,0 +1,88 @@
+{
+  "baseline": {
+    "verdict": "ok",
+    "source": "probe",
+    "upstream_url": "https://opencode.ai/inference/v1",
+    "client_format": "v1",
+    "verified_version": "1.19.0",
+    "checked_at": 1791994060225,
+    "required_tools": [
+      "bash",
+      "read"
+    ],
+    "conditions": [
+      {
+        "name": "baseline",
+        "ok": true,
+        "status": 200,
+        "detail": "request uji muse-spark-1.3-contributor-free dengan 11 tools (v1)"
+      },
+      {
+        "name": "user_agent_prefix",
+        "ok": true,
+        "status": 403,
+        "detail": "a non-opencode User-Agent must be refused"
+      },
+      {
+        "name": "session_shape",
+        "ok": true,
+        "status": 403,
+        "detail": "a malformed session id must be refused"
+      },
+      {
+        "name": "stream_required",
+        "ok": true,
+        "status": 403,
+        "detail": "a non-streaming body must be refused"
+      },
+      {
+        "name": "required_tools",
+        "ok": true,
+        "status": 0,
+        "detail": "bash, read"
+      },
+      {
+        "name": "tool_superset",
+        "ok": true,
+        "status": 200,
+        "detail": "extra tool names beyond the required set must be tolerated"
+      },
+      {
+        "name": "min_version",
+        "ok": true,
+        "status": 0,
+        "detail": "1.18.0"
+      },
+      {
+        "name": "profile_verified",
+        "ok": true,
+        "status": 200,
+        "detail": "profil akhir diuji sebelum dipakai"
+      }
+    ]
+  },
+  "playground": {
+    "status": 200,
+    "text": "PLAYGROUND_OK",
+    "usage": {
+      "input_tokens": 2770,
+      "output_tokens": 34
+    },
+    "error": null,
+    "ok": true
+  },
+  "agent": {
+    "status": 200,
+    "text": "AGENT_OK",
+    "ok": true,
+    "declared_tools": 4,
+    "events": [
+      "message_start",
+      "content_block_start",
+      "content_block_delta",
+      "content_block_stop",
+      "message_delta",
+      "message_stop"
+    ]
+  }
+}

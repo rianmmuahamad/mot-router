@@ -1,0 +1,9 @@
+/target/
+/dist/
+/data/
+*.db
+*.db-wal
+*.db-shm
+*.partial
+
+__pycache__/

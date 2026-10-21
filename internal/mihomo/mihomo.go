@@ -14,6 +14,7 @@ package mihomo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -39,6 +40,21 @@ type Client struct {
 	// Secret is the control API bearer token, when configured.
 	Secret string
 	HTTP   *http.Client
+}
+
+type nodeContextKey struct{}
+
+// WithNode pins a native CONNECT tunnel to the node chosen for this attempt.
+// Concurrent gate probes and other requests may change the group's default.
+func WithNode(ctx context.Context, node string) context.Context {
+	return context.WithValue(ctx, nodeContextKey{}, node)
+}
+
+func nodeConnectHeader(ctx context.Context, _ *url.URL, _ string) (http.Header, error) {
+	if node, ok := ctx.Value(nodeContextKey{}).(string); ok && node != "" {
+		return http.Header{"X-Nodebank-Node": []string{node}}, nil
+	}
+	return nil, nil
 }
 
 // New builds a client with the conventional defaults.
@@ -67,8 +83,10 @@ type Group struct {
 	// pseudo-entries carrying account notices ("traffic remaining: 0", "expires
 	// on …") that look like real proxies but always fail; they report
 	// alive=false with a zero delay.
-	Alive   bool      `json:"alive"`
-	History []History `json:"history"`
+	Alive     bool      `json:"alive"`
+	History   []History `json:"history"`
+	ExitIP    string    `json:"exit_ip,omitempty"`
+	CheckedAt int64     `json:"checked_at,omitempty"`
 }
 
 // History is one health-check result.
@@ -216,12 +234,30 @@ func (c *Client) SelectorGroups(ctx context.Context) ([]Group, error) {
 
 // Select switches the node used by a Selector group.
 func (c *Client) Select(ctx context.Context, group, node string) error {
+	return c.selectNode(ctx, group, node, nil)
+}
+
+var ErrSelectionChanged = errors.New("node selection or eligibility changed")
+
+// SelectExpected applies a native selection only if its snapshot is current.
+func (c *Client) SelectExpected(ctx context.Context, group, node, expected string) error {
+	return c.selectNode(ctx, group, node, &expected)
+}
+
+func (c *Client) selectNode(ctx context.Context, group, node string, expected *string) error {
+	payload := map[string]any{"name": node}
+	if expected != nil {
+		payload["expected_now"] = *expected
+	}
 	body, status, err := c.do(ctx, http.MethodPut,
-		"/proxies/"+url.PathEscape(group), map[string]string{"name": node})
+		"/proxies/"+url.PathEscape(group), payload)
 	if err != nil {
 		return err
 	}
 	if status < 200 || status >= 300 {
+		if expected != nil && status == http.StatusConflict {
+			return fmt.Errorf("%w: %s", ErrSelectionChanged, strings.TrimSpace(string(body)))
+		}
 		return fmt.Errorf("selecting %q in %q returned %d: %s",
 			node, group, status, strings.TrimSpace(string(body)))
 	}
@@ -259,6 +295,21 @@ func (c *Client) Version(ctx context.Context) (string, error) {
 	return payload.Version, nil
 }
 
+// RuntimeStatus is the optional NodeBank controller extension. It contains
+// public health counters only; proxy configurations never reach the dashboard.
+func (c *Client) RuntimeStatus(ctx context.Context) (map[string]any, error) {
+	body, status, err := c.do(ctx, http.MethodGet, "/status", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("runtime status returned %d", status)
+	}
+	var out map[string]any
+	err = json.Unmarshal(body, &out)
+	return out, err
+}
+
 // egressProbes are the services used to discover the exit IP.
 //
 // More than one is tried because a single blocked or flaky endpoint would
@@ -287,6 +338,7 @@ func (c *Client) EgressIP(ctx context.Context) (string, error) {
 	}
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.Proxy = http.ProxyURL(proxyURL)
+	transport.GetProxyConnectHeader = nodeConnectHeader
 	transport.DialContext = (&net.Dialer{
 		Timeout:   10 * time.Second,
 		KeepAlive: 30 * time.Second,
@@ -318,8 +370,11 @@ func (c *Client) EgressIP(ctx context.Context) (string, error) {
 			}
 			continue
 		}
-		if ip := strings.TrimSpace(string(body)); ip != "" {
-			return ip, nil
+		if ip := net.ParseIP(strings.TrimSpace(string(body))); ip != nil {
+			return ip.String(), nil
+		}
+		if firstErr == nil {
+			firstErr = fmt.Errorf("%s did not return a valid IP address", probe)
 		}
 	}
 	if firstErr == nil {
@@ -354,6 +409,7 @@ func (c *Client) ProxyClient() *http.Client {
 		// as a 65s failure with status 0 ("EOF") before this was fixed.
 		tr := http.DefaultTransport.(*http.Transport).Clone()
 		tr.Proxy = http.ProxyURL(proxyURL)
+		tr.GetProxyConnectHeader = nodeConnectHeader
 		tr.DialContext = (&net.Dialer{
 			Timeout:   15 * time.Second,
 			KeepAlive: 30 * time.Second,

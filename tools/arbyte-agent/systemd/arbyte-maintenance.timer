@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh NodeBank and monitor VPS every five minutes
+
+[Timer]
+OnActiveSec=1min
+OnUnitInactiveSec=5min
+AccuracySec=15s
+Unit=arbyte-maintenance.service
+
+[Install]
+WantedBy=timers.target

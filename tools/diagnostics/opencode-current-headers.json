@@ -1,0 +1,471 @@
+{
+  "captured_at": "2026-10-14T22:16:47+0700",
+  "binary": "/home/rian/.npm-global/bin/opencode",
+  "version": "1.19.0",
+  "mode": "isolated configuration and storage; localhost only; no real credentials or upstream inference",
+  "runs": [
+    {
+      "model": "muse-spark-1.3-contributor-free",
+      "exit_code": 1,
+      "requests_captured": 2,
+      "diagnostic_output": "locally stopped after capture"
+    },
+    {
+      "model": "exo-free",
+      "exit_code": 1,
+      "requests_captured": 2,
+      "diagnostic_output": "locally stopped after capture"
+    }
+  ],
+  "requests": [
+    {
+      "path": "/v1/responses",
+      "headers": {
+        "content-type": "application/json",
+        "user-agent": "opencode/1.19.0 ai-sdk/provider-utils/4.0.40 runtime/bun/1.3.14",
+        "x-opencode-client": "cli",
+        "x-opencode-project": "global",
+        "x-opencode-request": "msg_<12 hex><14 base62>",
+        "x-opencode-session": "ses_<12 hex><14 base62>",
+        "x-opencode-session-id": "ses_<12 hex><14 base62>",
+        "connection": "keep-alive",
+        "accept": "*/*",
+        "host": "127.0.0.1:35547",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "content-length": "2608"
+      },
+      "authorization_present": true,
+      "body_bytes": 2608,
+      "body_keys": [
+        "model",
+        "input",
+        "max_output_tokens",
+        "store",
+        "include",
+        "reasoning",
+        "stream"
+      ],
+      "model": "gpt-5.4-nano",
+      "stream": true,
+      "store": false,
+      "max_output_tokens": 32000,
+      "max_tokens": null,
+      "prompt_cache_key": null,
+      "input_roles": [
+        "developer",
+        "user",
+        "user"
+      ],
+      "tools": []
+    },
+    {
+      "path": "/v1/responses",
+      "headers": {
+        "content-type": "application/json",
+        "user-agent": "opencode/1.19.0 ai-sdk/provider-utils/4.0.40 runtime/bun/1.3.14",
+        "x-opencode-client": "cli",
+        "x-opencode-project": "global",
+        "x-opencode-request": "msg_<12 hex><14 base62>",
+        "x-opencode-session": "ses_<12 hex><14 base62>",
+        "x-opencode-session-id": "ses_<12 hex><14 base62>",
+        "connection": "keep-alive",
+        "accept": "*/*",
+        "host": "127.0.0.1:35547",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "content-length": "32678"
+      },
+      "authorization_present": true,
+      "body_bytes": 32678,
+      "body_keys": [
+        "model",
+        "input",
+        "max_output_tokens",
+        "store",
+        "include",
+        "prompt_cache_key",
+        "tools",
+        "tool_choice",
+        "stream"
+      ],
+      "model": "muse-spark-1.3-contributor-free",
+      "stream": true,
+      "store": false,
+      "max_output_tokens": 32000,
+      "max_tokens": null,
+      "prompt_cache_key": "<session ID>",
+      "input_roles": [
+        "developer",
+        "user"
+      ],
+      "tools": [
+        {
+          "name": "bash",
+          "required": [
+            "command"
+          ],
+          "schema_properties": [
+            "command",
+            "timeout",
+            "workdir"
+          ]
+        },
+        {
+          "name": "edit",
+          "required": [
+            "filePath",
+            "oldString",
+            "newString"
+          ],
+          "schema_properties": [
+            "filePath",
+            "oldString",
+            "newString",
+            "replaceAll"
+          ]
+        },
+        {
+          "name": "glob",
+          "required": [
+            "pattern"
+          ],
+          "schema_properties": [
+            "pattern",
+            "path"
+          ]
+        },
+        {
+          "name": "grep",
+          "required": [
+            "pattern"
+          ],
+          "schema_properties": [
+            "pattern",
+            "path",
+            "include"
+          ]
+        },
+        {
+          "name": "read",
+          "required": [
+            "filePath"
+          ],
+          "schema_properties": [
+            "filePath",
+            "offset",
+            "limit"
+          ]
+        },
+        {
+          "name": "skill",
+          "required": [
+            "name"
+          ],
+          "schema_properties": [
+            "name"
+          ]
+        },
+        {
+          "name": "task",
+          "required": [
+            "description",
+            "prompt",
+            "subagent_type"
+          ],
+          "schema_properties": [
+            "description",
+            "prompt",
+            "subagent_type",
+            "task_id",
+            "command"
+          ]
+        },
+        {
+          "name": "todowrite",
+          "required": [
+            "todos"
+          ],
+          "schema_properties": [
+            "todos"
+          ]
+        },
+        {
+          "name": "webfetch",
+          "required": [
+            "url"
+          ],
+          "schema_properties": [
+            "url",
+            "format",
+            "timeout"
+          ]
+        },
+        {
+          "name": "websearch",
+          "required": [
+            "query"
+          ],
+          "schema_properties": [
+            "query",
+            "numResults",
+            "livecrawl",
+            "type",
+            "contextMaxCharacters"
+          ]
+        },
+        {
+          "name": "write",
+          "required": [
+            "content",
+            "filePath"
+          ],
+          "schema_properties": [
+            "content",
+            "filePath"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/v1/responses",
+      "headers": {
+        "content-type": "application/json",
+        "user-agent": "opencode/1.19.0 ai-sdk/provider-utils/4.0.40 runtime/bun/1.3.14",
+        "x-opencode-client": "cli",
+        "x-opencode-project": "global",
+        "x-opencode-request": "msg_<12 hex><14 base62>",
+        "x-opencode-session": "ses_<12 hex><14 base62>",
+        "x-opencode-session-id": "ses_<12 hex><14 base62>",
+        "connection": "keep-alive",
+        "accept": "*/*",
+        "host": "127.0.0.1:35547",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "content-length": "2608"
+      },
+      "authorization_present": true,
+      "body_bytes": 2608,
+      "body_keys": [
+        "model",
+        "input",
+        "max_output_tokens",
+        "store",
+        "include",
+        "reasoning",
+        "stream"
+      ],
+      "model": "gpt-5.4-nano",
+      "stream": true,
+      "store": false,
+      "max_output_tokens": 32000,
+      "max_tokens": null,
+      "prompt_cache_key": null,
+      "input_roles": [
+        "developer",
+        "user",
+        "user"
+      ],
+      "tools": []
+    },
+    {
+      "path": "/v1/chat/completions",
+      "headers": {
+        "content-type": "application/json",
+        "user-agent": "opencode/1.19.0 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.14",
+        "x-opencode-client": "cli",
+        "x-opencode-project": "global",
+        "x-opencode-request": "msg_<12 hex><14 base62>",
+        "x-opencode-session": "ses_<12 hex><14 base62>",
+        "x-opencode-session-id": "ses_<12 hex><14 base62>",
+        "connection": "keep-alive",
+        "accept": "*/*",
+        "host": "127.0.0.1:35547",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "content-length": "32669"
+      },
+      "authorization_present": true,
+      "body_bytes": 32669,
+      "body_keys": [
+        "model",
+        "max_tokens",
+        "messages",
+        "tools",
+        "tool_choice",
+        "stream",
+        "stream_options"
+      ],
+      "model": "exo-free",
+      "stream": true,
+      "store": null,
+      "max_output_tokens": null,
+      "max_tokens": 32000,
+      "prompt_cache_key": null,
+      "input_roles": [
+        "system",
+        "user"
+      ],
+      "tools": [
+        {
+          "name": "bash",
+          "required": [
+            "command"
+          ],
+          "schema_properties": [
+            "command",
+            "timeout",
+            "workdir"
+          ]
+        },
+        {
+          "name": "edit",
+          "required": [
+            "filePath",
+            "oldString",
+            "newString"
+          ],
+          "schema_properties": [
+            "filePath",
+            "oldString",
+            "newString",
+            "replaceAll"
+          ]
+        },
+        {
+          "name": "glob",
+          "required": [
+            "pattern"
+          ],
+          "schema_properties": [
+            "pattern",
+            "path"
+          ]
+        },
+        {
+          "name": "grep",
+          "required": [
+            "pattern"
+          ],
+          "schema_properties": [
+            "pattern",
+            "path",
+            "include"
+          ]
+        },
+        {
+          "name": "read",
+          "required": [
+            "filePath"
+          ],
+          "schema_properties": [
+            "filePath",
+            "offset",
+            "limit"
+          ]
+        },
+        {
+          "name": "skill",
+          "required": [
+            "name"
+          ],
+          "schema_properties": [
+            "name"
+          ]
+        },
+        {
+          "name": "task",
+          "required": [
+            "description",
+            "prompt",
+            "subagent_type"
+          ],
+          "schema_properties": [
+            "description",
+            "prompt",
+            "subagent_type",
+            "task_id",
+            "command"
+          ]
+        },
+        {
+          "name": "todowrite",
+          "required": [
+            "todos"
+          ],
+          "schema_properties": [
+            "todos"
+          ]
+        },
+        {
+          "name": "webfetch",
+          "required": [
+            "url"
+          ],
+          "schema_properties": [
+            "url",
+            "format",
+            "timeout"
+          ]
+        },
+        {
+          "name": "websearch",
+          "required": [
+            "query"
+          ],
+          "schema_properties": [
+            "query",
+            "numResults",
+            "livecrawl",
+            "type",
+            "contextMaxCharacters"
+          ]
+        },
+        {
+          "name": "write",
+          "required": [
+            "content",
+            "filePath"
+          ],
+          "schema_properties": [
+            "content",
+            "filePath"
+          ]
+        }
+      ]
+    }
+  ],
+  "installation_inventory": [
+    {
+      "path": "/home/rian/.npm-global/bin/opencode",
+      "version": "1.19.0",
+      "first_in_PATH": true
+    },
+    {
+      "path": "/home/rian/.opencode/bin/opencode",
+      "version": "1.18.35",
+      "first_in_PATH": false
+    }
+  ],
+  "observations": {
+    "v2_installed_in_resolved_paths": false,
+    "session_id_format": "ses_ + 12 hex timestamp/counter descending + 14 base62",
+    "request_id_format": "msg_ + 12 hex timestamp/counter ascending + 14 base62",
+    "isolated_project": "global (can differ in an actual Git project)",
+    "main_request_tools": 11,
+    "title_requests_are_separate": true,
+    "upstream_403_cause_verified": false,
+    "diagnostic_403": "Generated by the localhost collector, not an upstream error"
+  },
+  "local_repair_validation": {
+    "unit_tests": "go test -short ./internal/gate ./internal/zen ./internal/translate ./internal/server: passed",
+    "race_tests": "go test -short -race ./internal/gate ./internal/zen: passed",
+    "binary_build": "go build -buildvcs=false: passed",
+    "vps_state": "Deployed; baseline HTTP 200; Playground PLAYGROUND_OK; Anthropic agent AGENT_OK with four custom tools.",
+    "real_upstream_inference_tested": false
+  },
+  "root_causes_verified": [
+    "Legacy /zen/v1/responses rejected native request; /inference/v1/responses accepted on the same proxy path.",
+    "Known native tool descriptions are checked; generic diagnostic descriptions were rejected.",
+    "Empty Playground schemas and Claude parameter aliases such as file_path were rejected; typed native schemas and bidirectional aliases fixed these paths."
+  ],
+  "production_evidence": "opencode-vps-production-verification.json",
+  "backup_directory": "/var/backups/mot-router/20261014T160713Z-opencode-adaptation",
+  "deployed_binary_sha256": "16681c1c1640f161e78a900bb781c46c5b00cd1b6d2450622b374d2d5ecafa1d"
+}

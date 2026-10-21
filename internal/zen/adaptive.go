@@ -11,15 +11,19 @@ import (
 // router applies it to every free-tier request so a client that changes its
 // User-Agent, session format, or tool roster keeps working unchanged.
 type GateProfile struct {
-	UserAgent      string
-	SessionPrefix  string
-	SessionHex     int
-	SessionAlnum   int
-	RequiresStream bool
+	ToolDescriptions map[string]string
+	BaseURL          string
+	ClientFormat     string
+	Identity         gate.IdentityPolicy
+	UserAgent        string
+	SessionPrefix    string
+	SessionHex       int
+	SessionAlnum     int
+	RequiresStream   bool
 	// RequiredTools are the names that must be present in the body.
 	RequiredTools []string
-	// AcceptsToolSuperset records whether extra names are tolerated. When false
-	// the router must send exactly RequiredTools rather than a superset.
+	// AcceptsToolSuperset records an explicit superset verification. False means
+	// unverified; caller tool schemas are always preserved.
 	AcceptsToolSuperset bool
 }
 
@@ -29,6 +33,10 @@ func ProfileFromGate(p *gate.Profile) *GateProfile {
 		return nil
 	}
 	return &GateProfile{
+		ToolDescriptions:    p.ToolDescriptions,
+		BaseURL:             p.BaseURL,
+		ClientFormat:        p.ClientFormat,
+		Identity:            p.Identity,
 		UserAgent:           p.UserAgent,
 		SessionPrefix:       p.SessionPrefix,
 		SessionHex:          p.SessionHex,
@@ -39,6 +47,11 @@ func ProfileFromGate(p *gate.Profile) *GateProfile {
 	}
 }
 
+func gateToolParameters(name, format string) map[string]any {
+	params, _ := gate.ProbeTool(name, format)["parameters"].(map[string]any)
+	return params
+}
+
 // ToolInjection describes a tool the router added to satisfy the gate.
 //
 // This matters because the model will happily call an injected tool even when
@@ -46,6 +59,7 @@ func ProfileFromGate(p *gate.Profile) *GateProfile {
 // would then receive a tool call it cannot execute, so the response translator
 // must rewrite such calls into something the client understands.
 type ToolInjection struct {
+	ArgumentAliases map[string]map[string]string
 	// Injected maps lowercased injected names to the client tool they map onto.
 	// A nil value means there is no natural equivalent and the call should be
 	// dropped rather than forwarded as an unknown tool.
@@ -80,8 +94,12 @@ func stubDescription(name string, equiv *string) string {
 // The mapping stays conservative: a candidate must contain a distinctive
 // substring, so unrelated tools are never matched by accident.
 func equivalentClientTool(injected string, originals map[string]string) string {
+	if injected == "shell" {
+		injected = "bash"
+	}
 	// Ordered most-specific first, so `read_file` beats a bare `file`.
 	patterns := map[string][]string{
+		"subagent": {"subagent", "task"},
 		"bash": {"execute_command", "run_terminal", "run_command", "shell_exec", "run_shell",
 			"terminal", "command", "shell", "exec", "bash", "run"},
 		"read": {"read_file", "readfile", "get_file", "view_file", "open_file",

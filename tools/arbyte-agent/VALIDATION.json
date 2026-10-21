@@ -1,0 +1,176 @@
+{
+  "verified_at": "2026-10-13T19:15:33.506381+00:00",
+  "nullclaw_version": "2026.5.29",
+  "binary_sha256": "966c524d3816531371e8657ffc84c40f47d94db89f6c70e816adce983e6d1f0a",
+  "unit_tests_passed": 7,
+  "native_gateway_tool_call_verified": true,
+  "scheduled_audit": {
+    "time": 1791918933,
+    "time_wib": "2026-10-14T02:15:33+07:00",
+    "status": "ok",
+    "service_result": "success",
+    "thread_events": [
+      {
+        "type": "tool_summary",
+        "total": 4,
+        "failed": 2
+      }
+    ],
+    "tool_call_note": "Audit service completed successfully and used native tools; two model tool-call attempts were rejected/failed, accurately reported by tool_summary."
+  },
+  "health": {
+    "agent": {
+      "http": 200,
+      "body": {
+        "status": "ok"
+      }
+    },
+    "portal": {
+      "http": 200,
+      "body": {
+        "ok": true,
+        "upstream": "http://127.0.0.1:8791"
+      }
+    }
+  },
+  "unauthenticated_gateway_http": 401,
+  "provider_key_encrypted": true,
+  "agent_has_sudo": false,
+  "observed_agent_cgroup_peak_bytes": 14196736,
+  "observed_bank_slice_peak_bytes": 84316160,
+  "measurement_scope": "setup sample, imports, background scan and AI audits; not a million-node benchmark",
+  "status": {
+    "time": 1791918933,
+    "time_wib": "2026-10-14T02:15:33+07:00",
+    "memory": {
+      "total_bytes": 2066460672,
+      "available_bytes": 1535651840,
+      "swap_used_bytes": 240435200
+    },
+    "cpu": {
+      "usage_percent": 2.3,
+      "sample_seconds": 92,
+      "logical_cpus": 2
+    },
+    "load_average": [
+      0.04,
+      0.05,
+      0.05
+    ],
+    "disk_free_bytes": 20374384640,
+    "services": {
+      "mot-router": "active",
+      "motgate": "active",
+      "guard": "active",
+      "mot-nodebank": "active",
+      "mot-nodebank-runtime": "active",
+      "mot-dashboard": "active",
+      "mot-cftunnel": "active",
+      "caddy": "active",
+      "arbyte-agent": "active"
+    },
+    "bank": {
+      "counts": {
+        "failed": 8376,
+        "healthy": 146,
+        "pending": 3698,
+        "total": 13925,
+        "unsupported": 1705
+      },
+      "paused": false,
+      "pause_reason": "",
+      "background": true,
+      "checked_since_start": 8039,
+      "tcp_parallelism": 128,
+      "protocol_parallelism": 16
+    },
+    "runtime": {
+      "counts": {
+        "failed": 10,
+        "healthy": 56,
+        "pending": 1,
+        "unsupported": 0
+      },
+      "total": 67,
+      "current": "DIRECT",
+      "pause_reason": "",
+      "source_error": "",
+      "active_connections": 0
+    },
+    "errors": [],
+    "warnings": []
+  },
+  "units": {
+    "arbyte-agent": {
+      "Result": "success",
+      "MemoryCurrent": "5050368",
+      "MemoryMax": "134217728",
+      "NoNewPrivileges": "yes",
+      "ActiveState": "active"
+    },
+    "arbyte-maintenance": {
+      "Result": "success",
+      "MemoryCurrent": "[not set]",
+      "MemoryMax": "67108864",
+      "NoNewPrivileges": "yes",
+      "ActiveState": "inactive"
+    },
+    "arbyte-maintenance.timer": {
+      "Result": "success",
+      "ActiveState": "active"
+    },
+    "arbyte-audit": {
+      "Result": "success",
+      "MemoryCurrent": "[not set]",
+      "MemoryMax": "33554432",
+      "NoNewPrivileges": "yes",
+      "ActiveState": "inactive"
+    },
+    "arbyte-audit.timer": {
+      "Result": "success",
+      "ActiveState": "active"
+    }
+  },
+  "timers": "NEXT                        LEFT          LAST                        PASSED       UNIT                     ACTIVATES                 \nWed 2026-10-14 03:17:36 CST 1min 21s left Wed 2026-10-14 03:12:36 CST 3min 39s ago arbyte-maintenance.timer arbyte-maintenance.service\nWed 2026-10-14 09:06:30 CST 5h 50min left n/a                         n/a          arbyte-audit.timer       arbyte-audit.service      \n\n2 timers listed.\n",
+  "sudo_privileges": "arbyte-agent is not allowed to run sudo",
+  "recovery_agent": {
+    "verified_at": "2026-10-15T03:36:49+07:00",
+    "source_manifest_sha256": "495255e35148525e2175a7cb94bf718ec2b4dc123b711d9ff748319b4fc01f98",
+    "backup": "/var/backups/arbyte-agent/20261014T203306Z-recovery-install",
+    "monitor_and_broker": "active",
+    "core_services": "all active after install and after cancelled build",
+    "agent_code_repair": "locked; independent provider and native tool call while router is unavailable are not configured",
+    "agent_gate_check": "passed; agent UID receives Code recovery locked",
+    "python_tests": {
+      "laptop": {"passed": 34, "failed": 0},
+      "vps": {"passed": 34, "failed": 0}
+    },
+    "production_proof": {
+      "measurement": "vps",
+      "baseline_http": 200,
+      "playground": {"ok": true, "input_tokens": 2770, "output_tokens": 64},
+      "agent_anthropic_stream": {"ok": true, "complete": true, "input_tokens": 2385, "output_tokens": 100},
+      "agent_openai_nonstream": {"ok": true, "http": 200, "declared_tools": 4, "input_tokens": 2211, "output_tokens": 98},
+      "tool_execution": "not exercised by this probe"
+    },
+    "isolated_fixture": {
+      "fixture_service_restart": true,
+      "failed_deploy_rollback": true,
+      "post_backup_customer_usage_retained": true,
+      "network_isolated_static_go_build": true,
+      "resource_limits": {"memory_max_mib": 512, "cpu_percent": 50},
+      "peak_combined_rss_mib": 278.4,
+      "peak_build_rss_mib": 254.1,
+      "measurement_scope": "acceptance fixture only; not a complete Go/Rust application build benchmark"
+    },
+    "motgate_build_on_vps": {
+      "result": "deferred",
+      "go_test_suite": "passed before the binary build stage",
+      "static_binary_build": "not completed",
+      "reason": "available RAM dropped below the 900 MiB build threshold while compiling modernc SQLite; build was stopped",
+      "production_changed": false,
+      "copied_database_migration_verified": false
+    },
+    "remaining_activation": "configure Gemini or another independent provider later, then prove native tool execution with Mot Router unavailable before enabling AI code repair"
+  }
+}

@@ -10,16 +10,28 @@ import (
 // providerFor decides which upstream serves a request.
 //
 // Resolution order:
-//  1. Cline models (glm/zai/stealth/stepfun/poolside prefixes).
-//  2. Token Harbor models (tokenharbor/th prefixes and the known :free ids).
-//  3. Zen catalog match, else the configured default.
+//  1. Explicit provider prefixes (including opencode-zen/).
+//  2. Provider-specific model namespaces (zai/stealth/stepfun/poolside).
+//  3. Token Harbor models (tokenharbor/th prefixes and the known :free ids).
+//  4. Zen catalog match, else the configured default.
 func (s *Server) providerFor(ctx context.Context, model string) (provider, bareModel string) {
 	low := strings.ToLower(model)
-	if strings.Contains(low, "glm") {
-		return ProviderCline, "zai/glm-5.2"
+	for _, prefix := range []string{"codebuddy/", "codebuddy-intl/", "cbai/"} {
+		if strings.HasPrefix(low, prefix) {
+			return ProviderCodeBuddy, model[len(prefix):]
+		}
 	}
-	if strings.HasPrefix(model, "cline/") {
-		return ProviderCline, strings.TrimPrefix(model, "cline/")
+	// An explicit provider must win over model-family names and catalog lookups.
+	if strings.HasPrefix(low, ProviderZen+"/") {
+		return ProviderZen, model[len(ProviderZen)+1:]
+	}
+	if strings.HasPrefix(low, "cline/") {
+		bare := model[len("cline/"):]
+		// This advertised Cline shorthand refers to its canonical provider ID.
+		if bare == "glm-5.2" {
+			bare = "zai/glm-5.2"
+		}
+		return ProviderCline, bare
 	}
 	if strings.HasPrefix(model, "cline-free/") || strings.HasPrefix(model, "zai/") || strings.HasPrefix(model, "stealth/") || strings.HasPrefix(model, "stepfun/") || strings.HasPrefix(model, "poolside/") {
 		return ProviderCline, model
@@ -30,11 +42,28 @@ func (s *Server) providerFor(ctx context.Context, model string) (provider, bareM
 	if strings.HasPrefix(model, "th/") {
 		return ProviderTokenHarbor, strings.TrimPrefix(model, "th/")
 	}
+	// A `:free` suffix only means Token Harbor when Token Harbor can actually
+	// serve it.
+	//
+	// It used to route unconditionally, so `mimo-v2.6-flash:free` answered
+	// "Token Harbor is not configured" even though Zen serves that model
+	// itself — the model is in the Zen catalog, and a forced
+	// `opencode-zen/mimo-v2.6-flash-free` request returns 200. Falling through
+	// to the catalog lookup below keeps the model usable with no provider
+	// configuration at all.
 	if strings.HasSuffix(model, ":free") {
+		if len(s.tokenHarborKeys()) > 0 {
+			return ProviderTokenHarbor, strings.TrimPrefix(strings.TrimPrefix(model, "tokenharbor/"), "th/")
+		}
+		if s.zenModelExists(ctx, model) {
+			return ProviderZen, model
+		}
+		// Also try the Zen naming convention: Zen serves `mimo-v2.6-flash-free`
+		// where Token Harbor advertises `mimo-v2.6-flash:free`.
+		if alt := strings.TrimSuffix(model, ":free") + "-free"; s.zenModelExists(ctx, alt) {
+			return ProviderZen, alt
+		}
 		return ProviderTokenHarbor, strings.TrimPrefix(strings.TrimPrefix(model, "tokenharbor/"), "th/")
-	}
-	if strings.HasPrefix(model, ProviderZen+"/") {
-		return ProviderZen, strings.TrimPrefix(model, ProviderZen+"/")
 	}
 	if p := s.providerForCatalog(ctx, model); p != "" {
 		return p, model

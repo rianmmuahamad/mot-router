@@ -1,0 +1,169 @@
+{
+  "date": "2026-10-17",
+  "scope": "Compatibility audit; diagnostic scripts only; production binary, accounts and selected node unchanged",
+  "versions": {
+    "installed": "2.0.29",
+    "latest_npm": "2.0.32",
+    "router_reference": "2.0.29",
+    "downloaded_latest_binary_integrity_verified": true
+  },
+  "production_read_only_snapshot": {
+    "artifact_sha256": "07c33ed9c566798229a2b6d90383cbc1640235ff9d76ab19e21697c9ecde2abb",
+    "profile_client_format": "v2",
+    "profile_version": "2.0.29",
+    "profile_verdict": "ok",
+    "profile_upstream_url": "https://opencode.ai/inference/v1",
+    "selected_node": "DIRECT"
+  },
+  "verified_matches": {
+    "controlled_chat_text_requests": 4,
+    "native_2_0_29_and_2_0_32_application_header_names": "same in explicit Chat runtime fixture",
+    "tool_definitions": [
+      {
+        "version": "opencode v2.0.29",
+        "model": "deepseek-v4.1-flash-free",
+        "tool_count": 12,
+        "embedded_tool_definition_mismatches": []
+      },
+      {
+        "version": "opencode v2.0.29",
+        "model": "glm-5.3-flash-free",
+        "tool_count": 12,
+        "embedded_tool_definition_mismatches": []
+      },
+      {
+        "version": "opencode v2.0.32",
+        "model": "deepseek-v4.1-flash-free",
+        "tool_count": 12,
+        "embedded_tool_definition_mismatches": []
+      },
+      {
+        "version": "opencode v2.0.32",
+        "model": "glm-5.3-flash-free",
+        "tool_count": 12,
+        "embedded_tool_definition_mismatches": []
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "A1",
+      "priority": 1,
+      "finding": "Baseline and final profile accept HTTP 200 even if the body contains only an SSE error",
+      "evidence": "router-current-compat-audit-2026-10-17.json:sse_error_baseline_probe",
+      "code": "internal/gate/gate.go:322",
+      "impact": "The adaptation indicator may be green without successful inference"
+    },
+    {
+      "id": "A2",
+      "priority": 1,
+      "finding": "An HTTP 200 SSE error becomes an interrupted response.completed and then an empty successful Chat completion",
+      "evidence": "router-current-compat-audit-2026-10-17.json:sse_error",
+      "code": [
+        "internal/zen/chat_completions.go:351",
+        "internal/translate/openai.go:392",
+        "internal/server/server.go:936"
+      ],
+      "impact": "Upstream error details disappear; response and request-log status can be misleading"
+    },
+    {
+      "id": "A3",
+      "priority": 2,
+      "finding": "Router reference is pinned to 2.0.29 while latest official CLI is 2.0.32",
+      "code": [
+        "internal/gate/native_descriptions.go:8",
+        "main.go:70"
+      ],
+      "impact": "The adaptation workflow does not automatically adopt an unverified newer release; matching an older reference does not prove current release compatibility"
+    },
+    {
+      "id": "A4",
+      "priority": 2,
+      "finding": "Router still uses one legacy shared inference root and a model-name heuristic, while official release sources use protocol-specific endpoints",
+      "code": "internal/gate/client_format.go:20",
+      "official_source": "https://github.com/anomalyco/opencode/pull/55680",
+      "impact": "Endpoint compatibility needs independent verification; no proof that migrating the path resolves an access denial"
+    },
+    {
+      "id": "A5",
+      "priority": 2,
+      "finding": "Chat translation drops generation parameters and reasoning_effort; requested tool_choice none becomes auto",
+      "evidence": "router-current-compat-audit-2026-10-17.json:payload",
+      "code": [
+        "internal/translate/openai.go:13",
+        "internal/zen/chat_completions.go:23"
+      ],
+      "fields": [
+        "temperature",
+        "top_p",
+        "parallel_tool_calls",
+        "stop",
+        "response_format",
+        "reasoning_effort"
+      ]
+    },
+    {
+      "id": "A6",
+      "priority": 2,
+      "finding": "Image content is lost when Responses-style items are flattened back into Chat messages",
+      "evidence": "router-current-compat-audit-2026-10-17.json:payload.messages",
+      "code": "internal/zen/chat_completions.go:86",
+      "impact": "Multimodal input is not preserved on this route; model support must still be checked separately"
+    },
+    {
+      "id": "A7",
+      "priority": 2,
+      "finding": "Router proxy path uses 20-second response-header timeout, 12-second first-event timeout and up to 8 attempts; official provider docs describe 5-minute header/chunk waits and up to 3 timeout retries",
+      "code": [
+        "internal/mihomo/mihomo.go:434",
+        "internal/server/mihomo.go:654"
+      ],
+      "official_source": "https://opencode.ai/v2/docs/providers/#timeouts",
+      "impact": "Slow but valid generations can have different behavior; no equivalent default inter-chunk guard was established in the router"
+    },
+    {
+      "id": "A8",
+      "priority": 2,
+      "finding": "Fresh fallback configuration still carries V1 defaults and the main fallback model is deprecated Muse",
+      "code": [
+        "internal/gate/gate.go:85",
+        "main.go:30"
+      ],
+      "impact": "Applies when a verified profile or explicit model setting is unavailable, not proof that the current saved VPS profile reverted"
+    },
+    {
+      "id": "A9",
+      "priority": 3,
+      "finding": "Native client owns and executes its tool registry; router adds aliases or tools and drops calls without a caller equivalent",
+      "code": "internal/zen/zen.go:319",
+      "impact": "The same tool names do not establish equivalent agent behavior"
+    },
+    {
+      "id": "A10",
+      "priority": 3,
+      "finding": "Transport implementation differs: native client transport and keep-alive versus Go proxy transport with keep-alive disabled",
+      "code": "internal/mihomo/mihomo.go:426",
+      "impact": "Connection reuse and compression behavior differ; TLS/network fingerprints were not captured and no 403 cause is established"
+    }
+  ],
+  "limitations": [
+    "Successful current-version captures explicitly select the per-model localhost endpoint and OpenAI Chat runtime; they do not verify live built-in catalog routing or upstream authorization",
+    "The first provider-only baseURL fixture failed before recording a request for 2.0.32 with an invalid-credential response; retained separately and excluded from successful comparisons",
+    "Native 2.0.32 did not finish the synthetic unknown SSE error case within 40 seconds; native error handling is inconclusive in that case",
+    "Prompt-cache-key presence changed when the runtime was explicitly selected in both versions; this is configuration-dependent and not a proven 2.0.32-only change",
+    "No new real provider inference or IP rotation was requested by this audit; older official-client VPS/laptop comparison is separately dated evidence",
+    "The precise cause of recurring FreeTierError remains unverified; neither changing a User-Agent nor matching tools establishes permission to use a restricted endpoint"
+  ],
+  "references": {
+    "release": "https://github.com/anomalyco/opencode/releases/tag/v2.0.32",
+    "provider_docs": "https://opencode.ai/v2/docs/providers/",
+    "migration_docs": "https://opencode.ai/v2/docs/migrate-v1/"
+  },
+  "evidence_files": [
+    "opencode-current-registry-2026-10-17.json",
+    "opencode-current-local-audit-2026-10-17.json",
+    "router-current-compat-audit-2026-10-17.json",
+    "opencode-current-initial-capture-failure-2026-10-17.json",
+    "opencode-2.0.29-to-2.0.32-2026-10-17.json"
+  ]
+}

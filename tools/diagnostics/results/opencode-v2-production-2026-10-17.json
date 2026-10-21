@@ -1,0 +1,76 @@
+{
+  "artifact_sha256": "0e0a6b81cfa9cc79dd47994a71dde227a82cfa0f7908b11bb24241766333c23e",
+  "gate": {
+    "verdict": "ok",
+    "source": "probe",
+    "probe_model": "deepseek-v4.1-flash-free",
+    "client_format": "v1",
+    "verified_version": "1.19.0",
+    "required_tools": [
+      "read"
+    ]
+  },
+  "functional": {
+    "node_test": {
+      "egress_ip": "104.28.166.113",
+      "elapsed_ms": 4742,
+      "group": "MOT",
+      "hint": "Satu request kecil diterima pada node ini; tidak menjamin seluruh model atau request berikutnya.",
+      "mode": "single_node",
+      "model": "deepseek-v4.1-flash-free",
+      "node": "NB-f3f307948be4b815f64be007",
+      "ok": true,
+      "proxy_ok": true,
+      "rotated": false,
+      "status": 200,
+      "tools_injected": 1,
+      "zen_ok": true
+    },
+    "gate_end_to_end": {
+      "elapsed_ms": 1888,
+      "model": "deepseek-v4.1-flash-free",
+      "ok": true,
+      "profile_source": "probe",
+      "required_tools": [
+        "read"
+      ],
+      "status": 200,
+      "stream_forced": true,
+      "text": "GATE_OK",
+      "tools_injected": 1,
+      "transport": true
+    },
+    "playground": {
+      "text": "PLAY_OK",
+      "usage": {
+        "input_tokens": 2560,
+        "output_tokens": 3
+      }
+    }
+  },
+  "agent_request": {
+    "status": 200,
+    "text": "AGENT_OK",
+    "done": true,
+    "finished": true,
+    "actual_models": [
+      "deepseek-v4.1-flash-free"
+    ],
+    "usage": {
+      "prompt_tokens": 629,
+      "completion_tokens": 4,
+      "total_tokens": 633
+    },
+    "error_type": "",
+    "elapsed_ms": 1591,
+    "ok": true
+  },
+  "ten_ip_pool_removed": true,
+  "nodebank_selected": "NB-f3f307948be4b815f64be007",
+  "services": {
+    "mot-router": "active",
+    "mot-nodebank-runtime": "active",
+    "mot-nodebank": "active",
+    "guard": "active"
+  }
+}

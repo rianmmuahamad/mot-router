@@ -1,0 +1,11 @@
+[Unit]
+Description=Arbyte AI audit every six hours
+
+[Timer]
+OnActiveSec=6h
+OnUnitInactiveSec=6h
+AccuracySec=1min
+Unit=arbyte-audit.service
+
+[Install]
+WantedBy=timers.target

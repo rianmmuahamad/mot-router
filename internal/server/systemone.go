@@ -23,6 +23,10 @@ func (s *Server) handleSystemOne(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusInternalServerError, err.Error(), "api_error")
 		return
 	}
+	if key == nil {
+		writeAPIError(w, http.StatusUnauthorized, "invalid API key", "authentication_error")
+		return
+	}
 
 	raw, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -48,7 +52,7 @@ func (s *Server) handleSystemOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	upstreamURL := s.zen.BaseURL + "/systemone"
+	upstreamURL := s.zen.EffectiveBaseURL(model) + "/systemone"
 	upReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, upstreamURL, bytes.NewReader(payload))
 	if err != nil {
 		writeAPIError(w, http.StatusInternalServerError, "build request error: "+err.Error(), "internal_error")

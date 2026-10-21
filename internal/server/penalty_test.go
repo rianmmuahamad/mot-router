@@ -35,10 +35,11 @@ func TestNodePenaltySkipsRejectedNode(t *testing.T) {
 		t.Errorf("penalties must be scoped per group, got %v", other)
 	}
 
-	// Recovery clears it.
-	s.clearNodePenalty("MOT", "WARP")
-	if got := s.penalizedNodes("MOT"); len(got) != 0 {
-		t.Errorf("clearing must remove the penalty, got %v", got)
+	// A success must NOT clear the penalty: Zen's limit is a multi-hour budget,
+	// so an IP that just answered can still be nearly exhausted. Only time
+	// expires it (covered by TestNodePenaltyExpires).
+	if got := s.penalizedNodes("MOT"); !got["WARP"] {
+		t.Error("a penalty must survive until its TTL elapses")
 	}
 }
 

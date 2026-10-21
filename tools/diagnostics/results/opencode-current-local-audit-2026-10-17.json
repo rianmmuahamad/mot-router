@@ -1,0 +1,1340 @@
+{
+  "mode": "isolated state; loopback-only fixture; no upstream inference or real credentials",
+  "clients": [
+    {
+      "version": "opencode v2.0.29",
+      "model": "deepseek-v4.1-flash-free",
+      "scenario": "text",
+      "route_mode": "explicit per-model localhost endpoint and OpenAI Chat runtime",
+      "exit_code": 0,
+      "events": [
+        {
+          "type": "text",
+          "text": "LOCAL_AUDIT_OK"
+        }
+      ],
+      "requests": [
+        {
+          "path": "/v1/chat/completions",
+          "headers": {
+            "authorization": "<redacted>",
+            "content-type": "application/json",
+            "user-agent": "opencode/latest/2.0.29/cli",
+            "b3": "<present>",
+            "traceparent": "<present>",
+            "x-opencode-client": "cli",
+            "x-opencode-project": "<present>",
+            "x-opencode-session": "<present>",
+            "x-opencode-session-id": "<present>",
+            "x-session-affinity": "<present>",
+            "x-session-id": "<present>",
+            "connection": "keep-alive",
+            "accept": "*/*",
+            "host": "<present>",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "content-length": "23202"
+          },
+          "body_keys": [
+            "max_completion_tokens",
+            "messages",
+            "model",
+            "prompt_cache_key",
+            "stream",
+            "stream_options",
+            "tools"
+          ],
+          "parameters": {
+            "model": "deepseek-v4.1-flash-free",
+            "stream": true,
+            "stream_options": {
+              "include_usage": true
+            },
+            "max_completion_tokens": 8192,
+            "prompt_cache_key": "ses_eb5ff61e9ffeqIFK6HpqGlG9RR"
+          },
+          "messages": [
+            {
+              "role": "system",
+              "content_characters": 9155
+            },
+            {
+              "role": "user",
+              "content_characters": 42
+            }
+          ],
+          "tools": [
+            {
+              "name": "edit",
+              "definition_sha256": "27b1736e68d25ac5abf219a7b4a5843cb14d0503f470a353e84b1ab0281ece07",
+              "required": [
+                "path",
+                "oldString",
+                "newString"
+              ]
+            },
+            {
+              "name": "glob",
+              "definition_sha256": "fab82c770b0572240f1bfc04e6b17eadd12a5ef8a6ea0b335faa7e634c59ee6f",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "grep",
+              "definition_sha256": "5c8586719a92ca8a991a40ed761b5c2a4409675c548ad9a394f694c96583c05b",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "question",
+              "definition_sha256": "9e3ed75222ea13fa68e3235f4ded2c820daf7b2aab86afccfcdc36b213aac9eb",
+              "required": [
+                "questions"
+              ]
+            },
+            {
+              "name": "read",
+              "definition_sha256": "6066d5116c320a485d2b4122f73def29252c5e0c8ff78bc147317c91f236bf42",
+              "required": [
+                "path"
+              ]
+            },
+            {
+              "name": "shell",
+              "definition_sha256": "f6314daed7996970c2bf5691d777686f1d9065d4136bcff6419bfc56d8a5833f",
+              "required": [
+                "command"
+              ]
+            },
+            {
+              "name": "skill",
+              "definition_sha256": "b129b077024bf84f656b50d72b3f7f13bc2de317c7c41b709cecd4df352c78f7",
+              "required": [
+                "id"
+              ]
+            },
+            {
+              "name": "subagent",
+              "definition_sha256": "7c32901329b6cf7681f0f5711e2f9eb87dc4e9d9625b8acbef9df78eb951720b",
+              "required": [
+                "agent",
+                "description",
+                "prompt"
+              ]
+            },
+            {
+              "name": "webfetch",
+              "definition_sha256": "1881850fcf9501ecf9073247aca1585cb5153bca1e5082b7136dd0b753685cae",
+              "required": [
+                "url"
+              ]
+            },
+            {
+              "name": "websearch",
+              "definition_sha256": "47169dcb35d8cc55159b153463363aed00af4dfa67f7152f275f29ead7207271",
+              "required": [
+                "query"
+              ]
+            },
+            {
+              "name": "write",
+              "definition_sha256": "57b6dbc6f99746db035afdb94ea17eb40eda99aaaa45d367b3b827d40dc859ca",
+              "required": [
+                "path",
+                "content"
+              ]
+            },
+            {
+              "name": "execute",
+              "definition_sha256": "b6543022c49e83ebf3c24c16474cb38fb04fe4e5f01add075da07a5f42a5a62a",
+              "required": [
+                "code"
+              ]
+            }
+          ]
+        }
+      ],
+      "blocked_or_auxiliary_requests": []
+    },
+    {
+      "version": "opencode v2.0.29",
+      "model": "glm-5.3-flash-free",
+      "scenario": "text",
+      "route_mode": "explicit per-model localhost endpoint and OpenAI Chat runtime",
+      "exit_code": 0,
+      "events": [
+        {
+          "type": "text",
+          "text": "LOCAL_AUDIT_OK"
+        }
+      ],
+      "requests": [
+        {
+          "path": "/v1/chat/completions",
+          "headers": {
+            "authorization": "<redacted>",
+            "content-type": "application/json",
+            "user-agent": "opencode/latest/2.0.29/cli",
+            "b3": "<present>",
+            "traceparent": "<present>",
+            "x-opencode-client": "cli",
+            "x-opencode-project": "<present>",
+            "x-opencode-session": "<present>",
+            "x-opencode-session-id": "<present>",
+            "x-session-affinity": "<present>",
+            "x-session-id": "<present>",
+            "connection": "keep-alive",
+            "accept": "*/*",
+            "host": "<present>",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "content-length": "23184"
+          },
+          "body_keys": [
+            "max_completion_tokens",
+            "messages",
+            "model",
+            "prompt_cache_key",
+            "stream",
+            "stream_options",
+            "tools"
+          ],
+          "parameters": {
+            "model": "glm-5.3-flash-free",
+            "stream": true,
+            "stream_options": {
+              "include_usage": true
+            },
+            "max_completion_tokens": 8192,
+            "prompt_cache_key": "ses_eb5ff557cffeEReCBYU9bZCogk"
+          },
+          "messages": [
+            {
+              "role": "system",
+              "content_characters": 9143
+            },
+            {
+              "role": "user",
+              "content_characters": 42
+            }
+          ],
+          "tools": [
+            {
+              "name": "edit",
+              "definition_sha256": "27b1736e68d25ac5abf219a7b4a5843cb14d0503f470a353e84b1ab0281ece07",
+              "required": [
+                "path",
+                "oldString",
+                "newString"
+              ]
+            },
+            {
+              "name": "glob",
+              "definition_sha256": "fab82c770b0572240f1bfc04e6b17eadd12a5ef8a6ea0b335faa7e634c59ee6f",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "grep",
+              "definition_sha256": "5c8586719a92ca8a991a40ed761b5c2a4409675c548ad9a394f694c96583c05b",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "question",
+              "definition_sha256": "9e3ed75222ea13fa68e3235f4ded2c820daf7b2aab86afccfcdc36b213aac9eb",
+              "required": [
+                "questions"
+              ]
+            },
+            {
+              "name": "read",
+              "definition_sha256": "6066d5116c320a485d2b4122f73def29252c5e0c8ff78bc147317c91f236bf42",
+              "required": [
+                "path"
+              ]
+            },
+            {
+              "name": "shell",
+              "definition_sha256": "f6314daed7996970c2bf5691d777686f1d9065d4136bcff6419bfc56d8a5833f",
+              "required": [
+                "command"
+              ]
+            },
+            {
+              "name": "skill",
+              "definition_sha256": "b129b077024bf84f656b50d72b3f7f13bc2de317c7c41b709cecd4df352c78f7",
+              "required": [
+                "id"
+              ]
+            },
+            {
+              "name": "subagent",
+              "definition_sha256": "7c32901329b6cf7681f0f5711e2f9eb87dc4e9d9625b8acbef9df78eb951720b",
+              "required": [
+                "agent",
+                "description",
+                "prompt"
+              ]
+            },
+            {
+              "name": "webfetch",
+              "definition_sha256": "1881850fcf9501ecf9073247aca1585cb5153bca1e5082b7136dd0b753685cae",
+              "required": [
+                "url"
+              ]
+            },
+            {
+              "name": "websearch",
+              "definition_sha256": "47169dcb35d8cc55159b153463363aed00af4dfa67f7152f275f29ead7207271",
+              "required": [
+                "query"
+              ]
+            },
+            {
+              "name": "write",
+              "definition_sha256": "57b6dbc6f99746db035afdb94ea17eb40eda99aaaa45d367b3b827d40dc859ca",
+              "required": [
+                "path",
+                "content"
+              ]
+            },
+            {
+              "name": "execute",
+              "definition_sha256": "b6543022c49e83ebf3c24c16474cb38fb04fe4e5f01add075da07a5f42a5a62a",
+              "required": [
+                "code"
+              ]
+            }
+          ]
+        }
+      ],
+      "blocked_or_auxiliary_requests": []
+    },
+    {
+      "version": "opencode v2.0.32",
+      "model": "deepseek-v4.1-flash-free",
+      "scenario": "text",
+      "route_mode": "explicit per-model localhost endpoint and OpenAI Chat runtime",
+      "exit_code": 0,
+      "events": [
+        {
+          "type": "text",
+          "text": "LOCAL_AUDIT_OK"
+        }
+      ],
+      "requests": [
+        {
+          "path": "/v1/chat/completions",
+          "headers": {
+            "authorization": "<redacted>",
+            "content-type": "application/json",
+            "user-agent": "opencode/latest/2.0.32/cli",
+            "b3": "<present>",
+            "traceparent": "<present>",
+            "x-opencode-client": "cli",
+            "x-opencode-project": "<present>",
+            "x-opencode-session": "<present>",
+            "x-opencode-session-id": "<present>",
+            "x-session-affinity": "<present>",
+            "x-session-id": "<present>",
+            "connection": "keep-alive",
+            "accept": "*/*",
+            "host": "<present>",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "content-length": "23202"
+          },
+          "body_keys": [
+            "max_completion_tokens",
+            "messages",
+            "model",
+            "prompt_cache_key",
+            "stream",
+            "stream_options",
+            "tools"
+          ],
+          "parameters": {
+            "model": "deepseek-v4.1-flash-free",
+            "stream": true,
+            "stream_options": {
+              "include_usage": true
+            },
+            "max_completion_tokens": 8192,
+            "prompt_cache_key": "ses_eb5ff4a74ffexoj8LPcDlzxXVm"
+          },
+          "messages": [
+            {
+              "role": "system",
+              "content_characters": 9155
+            },
+            {
+              "role": "user",
+              "content_characters": 42
+            }
+          ],
+          "tools": [
+            {
+              "name": "edit",
+              "definition_sha256": "27b1736e68d25ac5abf219a7b4a5843cb14d0503f470a353e84b1ab0281ece07",
+              "required": [
+                "path",
+                "oldString",
+                "newString"
+              ]
+            },
+            {
+              "name": "glob",
+              "definition_sha256": "fab82c770b0572240f1bfc04e6b17eadd12a5ef8a6ea0b335faa7e634c59ee6f",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "grep",
+              "definition_sha256": "5c8586719a92ca8a991a40ed761b5c2a4409675c548ad9a394f694c96583c05b",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "question",
+              "definition_sha256": "9e3ed75222ea13fa68e3235f4ded2c820daf7b2aab86afccfcdc36b213aac9eb",
+              "required": [
+                "questions"
+              ]
+            },
+            {
+              "name": "read",
+              "definition_sha256": "6066d5116c320a485d2b4122f73def29252c5e0c8ff78bc147317c91f236bf42",
+              "required": [
+                "path"
+              ]
+            },
+            {
+              "name": "shell",
+              "definition_sha256": "f6314daed7996970c2bf5691d777686f1d9065d4136bcff6419bfc56d8a5833f",
+              "required": [
+                "command"
+              ]
+            },
+            {
+              "name": "skill",
+              "definition_sha256": "b129b077024bf84f656b50d72b3f7f13bc2de317c7c41b709cecd4df352c78f7",
+              "required": [
+                "id"
+              ]
+            },
+            {
+              "name": "subagent",
+              "definition_sha256": "7c32901329b6cf7681f0f5711e2f9eb87dc4e9d9625b8acbef9df78eb951720b",
+              "required": [
+                "agent",
+                "description",
+                "prompt"
+              ]
+            },
+            {
+              "name": "webfetch",
+              "definition_sha256": "1881850fcf9501ecf9073247aca1585cb5153bca1e5082b7136dd0b753685cae",
+              "required": [
+                "url"
+              ]
+            },
+            {
+              "name": "websearch",
+              "definition_sha256": "47169dcb35d8cc55159b153463363aed00af4dfa67f7152f275f29ead7207271",
+              "required": [
+                "query"
+              ]
+            },
+            {
+              "name": "write",
+              "definition_sha256": "57b6dbc6f99746db035afdb94ea17eb40eda99aaaa45d367b3b827d40dc859ca",
+              "required": [
+                "path",
+                "content"
+              ]
+            },
+            {
+              "name": "execute",
+              "definition_sha256": "b6543022c49e83ebf3c24c16474cb38fb04fe4e5f01add075da07a5f42a5a62a",
+              "required": [
+                "code"
+              ]
+            }
+          ]
+        }
+      ],
+      "blocked_or_auxiliary_requests": []
+    },
+    {
+      "version": "opencode v2.0.32",
+      "model": "glm-5.3-flash-free",
+      "scenario": "text",
+      "route_mode": "explicit per-model localhost endpoint and OpenAI Chat runtime",
+      "exit_code": 0,
+      "events": [
+        {
+          "type": "text",
+          "text": "LOCAL_AUDIT_OK"
+        }
+      ],
+      "requests": [
+        {
+          "path": "/v1/chat/completions",
+          "headers": {
+            "authorization": "<redacted>",
+            "content-type": "application/json",
+            "user-agent": "opencode/latest/2.0.32/cli",
+            "b3": "<present>",
+            "traceparent": "<present>",
+            "x-opencode-client": "cli",
+            "x-opencode-project": "<present>",
+            "x-opencode-session": "<present>",
+            "x-opencode-session-id": "<present>",
+            "x-session-affinity": "<present>",
+            "x-session-id": "<present>",
+            "connection": "keep-alive",
+            "accept": "*/*",
+            "host": "<present>",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "content-length": "23184"
+          },
+          "body_keys": [
+            "max_completion_tokens",
+            "messages",
+            "model",
+            "prompt_cache_key",
+            "stream",
+            "stream_options",
+            "tools"
+          ],
+          "parameters": {
+            "model": "glm-5.3-flash-free",
+            "stream": true,
+            "stream_options": {
+              "include_usage": true
+            },
+            "max_completion_tokens": 8192,
+            "prompt_cache_key": "ses_eb5ff3fdeffeo3CKLUMAmb4NXZ"
+          },
+          "messages": [
+            {
+              "role": "system",
+              "content_characters": 9143
+            },
+            {
+              "role": "user",
+              "content_characters": 42
+            }
+          ],
+          "tools": [
+            {
+              "name": "edit",
+              "definition_sha256": "27b1736e68d25ac5abf219a7b4a5843cb14d0503f470a353e84b1ab0281ece07",
+              "required": [
+                "path",
+                "oldString",
+                "newString"
+              ]
+            },
+            {
+              "name": "glob",
+              "definition_sha256": "fab82c770b0572240f1bfc04e6b17eadd12a5ef8a6ea0b335faa7e634c59ee6f",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "grep",
+              "definition_sha256": "5c8586719a92ca8a991a40ed761b5c2a4409675c548ad9a394f694c96583c05b",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "question",
+              "definition_sha256": "9e3ed75222ea13fa68e3235f4ded2c820daf7b2aab86afccfcdc36b213aac9eb",
+              "required": [
+                "questions"
+              ]
+            },
+            {
+              "name": "read",
+              "definition_sha256": "6066d5116c320a485d2b4122f73def29252c5e0c8ff78bc147317c91f236bf42",
+              "required": [
+                "path"
+              ]
+            },
+            {
+              "name": "shell",
+              "definition_sha256": "f6314daed7996970c2bf5691d777686f1d9065d4136bcff6419bfc56d8a5833f",
+              "required": [
+                "command"
+              ]
+            },
+            {
+              "name": "skill",
+              "definition_sha256": "b129b077024bf84f656b50d72b3f7f13bc2de317c7c41b709cecd4df352c78f7",
+              "required": [
+                "id"
+              ]
+            },
+            {
+              "name": "subagent",
+              "definition_sha256": "7c32901329b6cf7681f0f5711e2f9eb87dc4e9d9625b8acbef9df78eb951720b",
+              "required": [
+                "agent",
+                "description",
+                "prompt"
+              ]
+            },
+            {
+              "name": "webfetch",
+              "definition_sha256": "1881850fcf9501ecf9073247aca1585cb5153bca1e5082b7136dd0b753685cae",
+              "required": [
+                "url"
+              ]
+            },
+            {
+              "name": "websearch",
+              "definition_sha256": "47169dcb35d8cc55159b153463363aed00af4dfa67f7152f275f29ead7207271",
+              "required": [
+                "query"
+              ]
+            },
+            {
+              "name": "write",
+              "definition_sha256": "57b6dbc6f99746db035afdb94ea17eb40eda99aaaa45d367b3b827d40dc859ca",
+              "required": [
+                "path",
+                "content"
+              ]
+            },
+            {
+              "name": "execute",
+              "definition_sha256": "b6543022c49e83ebf3c24c16474cb38fb04fe4e5f01add075da07a5f42a5a62a",
+              "required": [
+                "code"
+              ]
+            }
+          ]
+        }
+      ],
+      "blocked_or_auxiliary_requests": []
+    },
+    {
+      "version": "opencode v2.0.32",
+      "model": "deepseek-v4.1-flash-free",
+      "scenario": "sse_error",
+      "route_mode": "explicit per-model localhost endpoint and OpenAI Chat runtime",
+      "exit_code": null,
+      "diagnostic": "Timed out after 40 seconds",
+      "requests": [
+        {
+          "path": "/v1/chat/completions",
+          "headers": {
+            "authorization": "<redacted>",
+            "content-type": "application/json",
+            "user-agent": "opencode/latest/2.0.32/cli",
+            "b3": "<present>",
+            "traceparent": "<present>",
+            "x-opencode-client": "cli",
+            "x-opencode-project": "<present>",
+            "x-opencode-session": "<present>",
+            "x-opencode-session-id": "<present>",
+            "x-session-affinity": "<present>",
+            "x-session-id": "<present>",
+            "connection": "keep-alive",
+            "accept": "*/*",
+            "host": "<present>",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "content-length": "23202"
+          },
+          "body_keys": [
+            "max_completion_tokens",
+            "messages",
+            "model",
+            "prompt_cache_key",
+            "stream",
+            "stream_options",
+            "tools"
+          ],
+          "parameters": {
+            "model": "deepseek-v4.1-flash-free",
+            "stream": true,
+            "stream_options": {
+              "include_usage": true
+            },
+            "max_completion_tokens": 8192,
+            "prompt_cache_key": "ses_eb5ff2b78ffe6WuKTkru7aqNLY"
+          },
+          "messages": [
+            {
+              "role": "system",
+              "content_characters": 9155
+            },
+            {
+              "role": "user",
+              "content_characters": 42
+            }
+          ],
+          "tools": [
+            {
+              "name": "edit",
+              "definition_sha256": "27b1736e68d25ac5abf219a7b4a5843cb14d0503f470a353e84b1ab0281ece07",
+              "required": [
+                "path",
+                "oldString",
+                "newString"
+              ]
+            },
+            {
+              "name": "glob",
+              "definition_sha256": "fab82c770b0572240f1bfc04e6b17eadd12a5ef8a6ea0b335faa7e634c59ee6f",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "grep",
+              "definition_sha256": "5c8586719a92ca8a991a40ed761b5c2a4409675c548ad9a394f694c96583c05b",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "question",
+              "definition_sha256": "9e3ed75222ea13fa68e3235f4ded2c820daf7b2aab86afccfcdc36b213aac9eb",
+              "required": [
+                "questions"
+              ]
+            },
+            {
+              "name": "read",
+              "definition_sha256": "6066d5116c320a485d2b4122f73def29252c5e0c8ff78bc147317c91f236bf42",
+              "required": [
+                "path"
+              ]
+            },
+            {
+              "name": "shell",
+              "definition_sha256": "f6314daed7996970c2bf5691d777686f1d9065d4136bcff6419bfc56d8a5833f",
+              "required": [
+                "command"
+              ]
+            },
+            {
+              "name": "skill",
+              "definition_sha256": "b129b077024bf84f656b50d72b3f7f13bc2de317c7c41b709cecd4df352c78f7",
+              "required": [
+                "id"
+              ]
+            },
+            {
+              "name": "subagent",
+              "definition_sha256": "7c32901329b6cf7681f0f5711e2f9eb87dc4e9d9625b8acbef9df78eb951720b",
+              "required": [
+                "agent",
+                "description",
+                "prompt"
+              ]
+            },
+            {
+              "name": "webfetch",
+              "definition_sha256": "1881850fcf9501ecf9073247aca1585cb5153bca1e5082b7136dd0b753685cae",
+              "required": [
+                "url"
+              ]
+            },
+            {
+              "name": "websearch",
+              "definition_sha256": "47169dcb35d8cc55159b153463363aed00af4dfa67f7152f275f29ead7207271",
+              "required": [
+                "query"
+              ]
+            },
+            {
+              "name": "write",
+              "definition_sha256": "57b6dbc6f99746db035afdb94ea17eb40eda99aaaa45d367b3b827d40dc859ca",
+              "required": [
+                "path",
+                "content"
+              ]
+            },
+            {
+              "name": "execute",
+              "definition_sha256": "b6543022c49e83ebf3c24c16474cb38fb04fe4e5f01add075da07a5f42a5a62a",
+              "required": [
+                "code"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/v1/chat/completions",
+          "headers": {
+            "authorization": "<redacted>",
+            "content-type": "application/json",
+            "user-agent": "opencode/latest/2.0.32/cli",
+            "b3": "<present>",
+            "traceparent": "<present>",
+            "x-opencode-client": "cli",
+            "x-opencode-project": "<present>",
+            "x-opencode-session": "<present>",
+            "x-opencode-session-id": "<present>",
+            "x-session-affinity": "<present>",
+            "x-session-id": "<present>",
+            "connection": "keep-alive",
+            "accept": "*/*",
+            "host": "<present>",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "content-length": "23202"
+          },
+          "body_keys": [
+            "max_completion_tokens",
+            "messages",
+            "model",
+            "prompt_cache_key",
+            "stream",
+            "stream_options",
+            "tools"
+          ],
+          "parameters": {
+            "model": "deepseek-v4.1-flash-free",
+            "stream": true,
+            "stream_options": {
+              "include_usage": true
+            },
+            "max_completion_tokens": 8192,
+            "prompt_cache_key": "ses_eb5ff2b78ffe6WuKTkru7aqNLY"
+          },
+          "messages": [
+            {
+              "role": "system",
+              "content_characters": 9155
+            },
+            {
+              "role": "user",
+              "content_characters": 42
+            }
+          ],
+          "tools": [
+            {
+              "name": "edit",
+              "definition_sha256": "27b1736e68d25ac5abf219a7b4a5843cb14d0503f470a353e84b1ab0281ece07",
+              "required": [
+                "path",
+                "oldString",
+                "newString"
+              ]
+            },
+            {
+              "name": "glob",
+              "definition_sha256": "fab82c770b0572240f1bfc04e6b17eadd12a5ef8a6ea0b335faa7e634c59ee6f",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "grep",
+              "definition_sha256": "5c8586719a92ca8a991a40ed761b5c2a4409675c548ad9a394f694c96583c05b",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "question",
+              "definition_sha256": "9e3ed75222ea13fa68e3235f4ded2c820daf7b2aab86afccfcdc36b213aac9eb",
+              "required": [
+                "questions"
+              ]
+            },
+            {
+              "name": "read",
+              "definition_sha256": "6066d5116c320a485d2b4122f73def29252c5e0c8ff78bc147317c91f236bf42",
+              "required": [
+                "path"
+              ]
+            },
+            {
+              "name": "shell",
+              "definition_sha256": "f6314daed7996970c2bf5691d777686f1d9065d4136bcff6419bfc56d8a5833f",
+              "required": [
+                "command"
+              ]
+            },
+            {
+              "name": "skill",
+              "definition_sha256": "b129b077024bf84f656b50d72b3f7f13bc2de317c7c41b709cecd4df352c78f7",
+              "required": [
+                "id"
+              ]
+            },
+            {
+              "name": "subagent",
+              "definition_sha256": "7c32901329b6cf7681f0f5711e2f9eb87dc4e9d9625b8acbef9df78eb951720b",
+              "required": [
+                "agent",
+                "description",
+                "prompt"
+              ]
+            },
+            {
+              "name": "webfetch",
+              "definition_sha256": "1881850fcf9501ecf9073247aca1585cb5153bca1e5082b7136dd0b753685cae",
+              "required": [
+                "url"
+              ]
+            },
+            {
+              "name": "websearch",
+              "definition_sha256": "47169dcb35d8cc55159b153463363aed00af4dfa67f7152f275f29ead7207271",
+              "required": [
+                "query"
+              ]
+            },
+            {
+              "name": "write",
+              "definition_sha256": "57b6dbc6f99746db035afdb94ea17eb40eda99aaaa45d367b3b827d40dc859ca",
+              "required": [
+                "path",
+                "content"
+              ]
+            },
+            {
+              "name": "execute",
+              "definition_sha256": "b6543022c49e83ebf3c24c16474cb38fb04fe4e5f01add075da07a5f42a5a62a",
+              "required": [
+                "code"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/v1/chat/completions",
+          "headers": {
+            "authorization": "<redacted>",
+            "content-type": "application/json",
+            "user-agent": "opencode/latest/2.0.32/cli",
+            "b3": "<present>",
+            "traceparent": "<present>",
+            "x-opencode-client": "cli",
+            "x-opencode-project": "<present>",
+            "x-opencode-session": "<present>",
+            "x-opencode-session-id": "<present>",
+            "x-session-affinity": "<present>",
+            "x-session-id": "<present>",
+            "connection": "keep-alive",
+            "accept": "*/*",
+            "host": "<present>",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "content-length": "23202"
+          },
+          "body_keys": [
+            "max_completion_tokens",
+            "messages",
+            "model",
+            "prompt_cache_key",
+            "stream",
+            "stream_options",
+            "tools"
+          ],
+          "parameters": {
+            "model": "deepseek-v4.1-flash-free",
+            "stream": true,
+            "stream_options": {
+              "include_usage": true
+            },
+            "max_completion_tokens": 8192,
+            "prompt_cache_key": "ses_eb5ff2b78ffe6WuKTkru7aqNLY"
+          },
+          "messages": [
+            {
+              "role": "system",
+              "content_characters": 9155
+            },
+            {
+              "role": "user",
+              "content_characters": 42
+            }
+          ],
+          "tools": [
+            {
+              "name": "edit",
+              "definition_sha256": "27b1736e68d25ac5abf219a7b4a5843cb14d0503f470a353e84b1ab0281ece07",
+              "required": [
+                "path",
+                "oldString",
+                "newString"
+              ]
+            },
+            {
+              "name": "glob",
+              "definition_sha256": "fab82c770b0572240f1bfc04e6b17eadd12a5ef8a6ea0b335faa7e634c59ee6f",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "grep",
+              "definition_sha256": "5c8586719a92ca8a991a40ed761b5c2a4409675c548ad9a394f694c96583c05b",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "question",
+              "definition_sha256": "9e3ed75222ea13fa68e3235f4ded2c820daf7b2aab86afccfcdc36b213aac9eb",
+              "required": [
+                "questions"
+              ]
+            },
+            {
+              "name": "read",
+              "definition_sha256": "6066d5116c320a485d2b4122f73def29252c5e0c8ff78bc147317c91f236bf42",
+              "required": [
+                "path"
+              ]
+            },
+            {
+              "name": "shell",
+              "definition_sha256": "f6314daed7996970c2bf5691d777686f1d9065d4136bcff6419bfc56d8a5833f",
+              "required": [
+                "command"
+              ]
+            },
+            {
+              "name": "skill",
+              "definition_sha256": "b129b077024bf84f656b50d72b3f7f13bc2de317c7c41b709cecd4df352c78f7",
+              "required": [
+                "id"
+              ]
+            },
+            {
+              "name": "subagent",
+              "definition_sha256": "7c32901329b6cf7681f0f5711e2f9eb87dc4e9d9625b8acbef9df78eb951720b",
+              "required": [
+                "agent",
+                "description",
+                "prompt"
+              ]
+            },
+            {
+              "name": "webfetch",
+              "definition_sha256": "1881850fcf9501ecf9073247aca1585cb5153bca1e5082b7136dd0b753685cae",
+              "required": [
+                "url"
+              ]
+            },
+            {
+              "name": "websearch",
+              "definition_sha256": "47169dcb35d8cc55159b153463363aed00af4dfa67f7152f275f29ead7207271",
+              "required": [
+                "query"
+              ]
+            },
+            {
+              "name": "write",
+              "definition_sha256": "57b6dbc6f99746db035afdb94ea17eb40eda99aaaa45d367b3b827d40dc859ca",
+              "required": [
+                "path",
+                "content"
+              ]
+            },
+            {
+              "name": "execute",
+              "definition_sha256": "b6543022c49e83ebf3c24c16474cb38fb04fe4e5f01add075da07a5f42a5a62a",
+              "required": [
+                "code"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/v1/chat/completions",
+          "headers": {
+            "authorization": "<redacted>",
+            "content-type": "application/json",
+            "user-agent": "opencode/latest/2.0.32/cli",
+            "b3": "<present>",
+            "traceparent": "<present>",
+            "x-opencode-client": "cli",
+            "x-opencode-project": "<present>",
+            "x-opencode-session": "<present>",
+            "x-opencode-session-id": "<present>",
+            "x-session-affinity": "<present>",
+            "x-session-id": "<present>",
+            "connection": "keep-alive",
+            "accept": "*/*",
+            "host": "<present>",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "content-length": "23202"
+          },
+          "body_keys": [
+            "max_completion_tokens",
+            "messages",
+            "model",
+            "prompt_cache_key",
+            "stream",
+            "stream_options",
+            "tools"
+          ],
+          "parameters": {
+            "model": "deepseek-v4.1-flash-free",
+            "stream": true,
+            "stream_options": {
+              "include_usage": true
+            },
+            "max_completion_tokens": 8192,
+            "prompt_cache_key": "ses_eb5ff2b78ffe6WuKTkru7aqNLY"
+          },
+          "messages": [
+            {
+              "role": "system",
+              "content_characters": 9155
+            },
+            {
+              "role": "user",
+              "content_characters": 42
+            }
+          ],
+          "tools": [
+            {
+              "name": "edit",
+              "definition_sha256": "27b1736e68d25ac5abf219a7b4a5843cb14d0503f470a353e84b1ab0281ece07",
+              "required": [
+                "path",
+                "oldString",
+                "newString"
+              ]
+            },
+            {
+              "name": "glob",
+              "definition_sha256": "fab82c770b0572240f1bfc04e6b17eadd12a5ef8a6ea0b335faa7e634c59ee6f",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "grep",
+              "definition_sha256": "5c8586719a92ca8a991a40ed761b5c2a4409675c548ad9a394f694c96583c05b",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "question",
+              "definition_sha256": "9e3ed75222ea13fa68e3235f4ded2c820daf7b2aab86afccfcdc36b213aac9eb",
+              "required": [
+                "questions"
+              ]
+            },
+            {
+              "name": "read",
+              "definition_sha256": "6066d5116c320a485d2b4122f73def29252c5e0c8ff78bc147317c91f236bf42",
+              "required": [
+                "path"
+              ]
+            },
+            {
+              "name": "shell",
+              "definition_sha256": "f6314daed7996970c2bf5691d777686f1d9065d4136bcff6419bfc56d8a5833f",
+              "required": [
+                "command"
+              ]
+            },
+            {
+              "name": "skill",
+              "definition_sha256": "b129b077024bf84f656b50d72b3f7f13bc2de317c7c41b709cecd4df352c78f7",
+              "required": [
+                "id"
+              ]
+            },
+            {
+              "name": "subagent",
+              "definition_sha256": "7c32901329b6cf7681f0f5711e2f9eb87dc4e9d9625b8acbef9df78eb951720b",
+              "required": [
+                "agent",
+                "description",
+                "prompt"
+              ]
+            },
+            {
+              "name": "webfetch",
+              "definition_sha256": "1881850fcf9501ecf9073247aca1585cb5153bca1e5082b7136dd0b753685cae",
+              "required": [
+                "url"
+              ]
+            },
+            {
+              "name": "websearch",
+              "definition_sha256": "47169dcb35d8cc55159b153463363aed00af4dfa67f7152f275f29ead7207271",
+              "required": [
+                "query"
+              ]
+            },
+            {
+              "name": "write",
+              "definition_sha256": "57b6dbc6f99746db035afdb94ea17eb40eda99aaaa45d367b3b827d40dc859ca",
+              "required": [
+                "path",
+                "content"
+              ]
+            },
+            {
+              "name": "execute",
+              "definition_sha256": "b6543022c49e83ebf3c24c16474cb38fb04fe4e5f01add075da07a5f42a5a62a",
+              "required": [
+                "code"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/v1/chat/completions",
+          "headers": {
+            "authorization": "<redacted>",
+            "content-type": "application/json",
+            "user-agent": "opencode/latest/2.0.32/cli",
+            "b3": "<present>",
+            "traceparent": "<present>",
+            "x-opencode-client": "cli",
+            "x-opencode-project": "<present>",
+            "x-opencode-session": "<present>",
+            "x-opencode-session-id": "<present>",
+            "x-session-affinity": "<present>",
+            "x-session-id": "<present>",
+            "connection": "keep-alive",
+            "accept": "*/*",
+            "host": "<present>",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "content-length": "23202"
+          },
+          "body_keys": [
+            "max_completion_tokens",
+            "messages",
+            "model",
+            "prompt_cache_key",
+            "stream",
+            "stream_options",
+            "tools"
+          ],
+          "parameters": {
+            "model": "deepseek-v4.1-flash-free",
+            "stream": true,
+            "stream_options": {
+              "include_usage": true
+            },
+            "max_completion_tokens": 8192,
+            "prompt_cache_key": "ses_eb5ff2b78ffe6WuKTkru7aqNLY"
+          },
+          "messages": [
+            {
+              "role": "system",
+              "content_characters": 9155
+            },
+            {
+              "role": "user",
+              "content_characters": 42
+            }
+          ],
+          "tools": [
+            {
+              "name": "edit",
+              "definition_sha256": "27b1736e68d25ac5abf219a7b4a5843cb14d0503f470a353e84b1ab0281ece07",
+              "required": [
+                "path",
+                "oldString",
+                "newString"
+              ]
+            },
+            {
+              "name": "glob",
+              "definition_sha256": "fab82c770b0572240f1bfc04e6b17eadd12a5ef8a6ea0b335faa7e634c59ee6f",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "grep",
+              "definition_sha256": "5c8586719a92ca8a991a40ed761b5c2a4409675c548ad9a394f694c96583c05b",
+              "required": [
+                "pattern"
+              ]
+            },
+            {
+              "name": "question",
+              "definition_sha256": "9e3ed75222ea13fa68e3235f4ded2c820daf7b2aab86afccfcdc36b213aac9eb",
+              "required": [
+                "questions"
+              ]
+            },
+            {
+              "name": "read",
+              "definition_sha256": "6066d5116c320a485d2b4122f73def29252c5e0c8ff78bc147317c91f236bf42",
+              "required": [
+                "path"
+              ]
+            },
+            {
+              "name": "shell",
+              "definition_sha256": "f6314daed7996970c2bf5691d777686f1d9065d4136bcff6419bfc56d8a5833f",
+              "required": [
+                "command"
+              ]
+            },
+            {
+              "name": "skill",
+              "definition_sha256": "b129b077024bf84f656b50d72b3f7f13bc2de317c7c41b709cecd4df352c78f7",
+              "required": [
+                "id"
+              ]
+            },
+            {
+              "name": "subagent",
+              "definition_sha256": "7c32901329b6cf7681f0f5711e2f9eb87dc4e9d9625b8acbef9df78eb951720b",
+              "required": [
+                "agent",
+                "description",
+                "prompt"
+              ]
+            },
+            {
+              "name": "webfetch",
+              "definition_sha256": "1881850fcf9501ecf9073247aca1585cb5153bca1e5082b7136dd0b753685cae",
+              "required": [
+                "url"
+              ]
+            },
+            {
+              "name": "websearch",
+              "definition_sha256": "47169dcb35d8cc55159b153463363aed00af4dfa67f7152f275f29ead7207271",
+              "required": [
+                "query"
+              ]
+            },
+            {
+              "name": "write",
+              "definition_sha256": "57b6dbc6f99746db035afdb94ea17eb40eda99aaaa45d367b3b827d40dc859ca",
+              "required": [
+                "path",
+                "content"
+              ]
+            },
+            {
+              "name": "execute",
+              "definition_sha256": "b6543022c49e83ebf3c24c16474cb38fb04fe4e5f01add075da07a5f42a5a62a",
+              "required": [
+                "code"
+              ]
+            }
+          ]
+        }
+      ],
+      "blocked_or_auxiliary_requests": []
+    }
+  ]
+}

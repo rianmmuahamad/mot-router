@@ -27,7 +27,7 @@ import (
 
 const (
 	defaultPort  = 8787
-	defaultModel = "muse-spark-1.3-contributor-free"
+	defaultModel = "deepseek-v4.1-flash-free"
 )
 
 func main() {
@@ -47,6 +47,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("resolve data dir: %v", err)
 	}
+	cfg.DataDir = absData
 
 	st, err := store.Open(absData)
 	if err != nil {
@@ -63,9 +64,21 @@ func main() {
 	// The upstream gate is probed rather than assumed: every gate failure returns
 	// the same 403, so the only reliable way to learn the required request shape
 	// is to test it. The cache refreshes in the background.
-	gc := gate.NewCache(gate.NewProber(zc.BaseURL, env("MOT_GATE_PROBE_MODEL", "muse-spark-1.3-contributor-free")), 0)
+	prober := gate.NewProber(zc.BaseURL, env("MOT_GATE_PROBE_MODEL", gate.DefaultProbeModel))
+	// Keep headers and embedded native tool definitions on the same client
+	// reference. An unrelated npm update must not silently mix wire contracts.
+	prober.ReferenceVersion = env("MOT_OPENCODE_REFERENCE_VERSION", gate.NativeV2ReferenceVersion)
+	gc := gate.NewCache(prober, 0)
 
 	srvAPI := server.New(cfg, st, zc, gc)
+
+	catalogSource := os.Getenv("ZEN_CATALOG_URL")
+	if catalogSource == "off" {
+		catalogSource = ""
+	}
+	if err := zc.ConfigureCatalogCache(filepath.Join(absData, "model-catalog-v1.json"), catalogSource); err != nil {
+		log.Printf("catalog cache unavailable: %v", err)
+	}
 
 	srv := &http.Server{
 		Addr:    net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port)),
@@ -78,10 +91,31 @@ func main() {
 	// delay the server from accepting connections, and the fallback profile
 	// covers that window.
 	go func() {
+		if !gc.NeedsRefresh() {
+			return
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 		defer cancel()
 		if p := srvAPI.ProbeGate(ctx); p != nil {
 			log.Printf("gate profile: %s (tools: %s)", p.Verdict, strings.Join(p.RequiredTools, ", "))
+		}
+	}()
+	// A restored healthy profile is rechecked when stale. Failed profiles are
+	// retried in the background every five minutes, with one probe in flight.
+	monitorCtx, stopMonitor := context.WithCancel(context.Background())
+	defer stopMonitor()
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-monitorCtx.Done():
+				return
+			case <-ticker.C:
+				if gc.NeedsRefresh() {
+					srvAPI.ProbeGate(monitorCtx)
+				}
+			}
 		}
 	}()
 
@@ -95,6 +129,7 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
+	stopMonitor()
 
 	log.Println("shutting down")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

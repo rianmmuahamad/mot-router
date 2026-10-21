@@ -12,10 +12,16 @@ import (
 
 // gateStatus is the dashboard view of the probed upstream request shape.
 type gateStatus struct {
-	Verdict   string `json:"verdict"`
-	Source    string `json:"source"`
-	CheckedAt int64  `json:"checked_at"`
-	LatencyMs int64  `json:"latency_ms"`
+	UpstreamURL     string               `json:"upstream_url"`
+	ProbeModel      string               `json:"probe_model"`
+	ClientFormat    string               `json:"client_format"`
+	VerifiedVersion string               `json:"verified_version,omitempty"`
+	Automatic       gate.AutomaticStatus `json:"automatic"`
+	Identity        gate.IdentityPolicy  `json:"identity"`
+	Verdict         string               `json:"verdict"`
+	Source          string               `json:"source"`
+	CheckedAt       int64                `json:"checked_at"`
+	LatencyMs       int64                `json:"latency_ms"`
 	// AgeSeconds is how long ago the profile was verified.
 	AgeSeconds int64 `json:"age_seconds"`
 	// Refreshing is true while a probe is running.
@@ -55,19 +61,26 @@ func (s *Server) buildGateStatus(prof *gate.Profile) gateStatus {
 	}
 
 	st := gateStatus{
-		Verdict:        prof.Verdict,
-		Source:         prof.Source,
-		CheckedAt:      prof.CheckedAt.UnixMilli(),
-		LatencyMs:      prof.LatencyMs,
-		AgeSeconds:     int64(time.Since(prof.CheckedAt).Seconds()),
-		UserAgent:      prof.UserAgent,
-		MinVersion:     prof.MinVersion,
-		SessionPattern: sessionPattern(prof),
-		RequiresStream: prof.RequiresStream,
-		RequiredTools:  prof.RequiredTools,
-		AcceptsSuper:   prof.AcceptsToolSuperset,
-		Conditions:     prof.Conditions,
+		UpstreamURL:     s.zen.EffectiveBaseURL(s.gate.ProbeModel()),
+		ProbeModel:      s.gate.ProbeModel(),
+		ClientFormat:    prof.ClientFormat,
+		VerifiedVersion: prof.VerifiedVersion,
+		Automatic:       s.gate.Automatic(),
+		Identity:        prof.Identity.Normalized(),
+		Verdict:         prof.Verdict,
+		Source:          prof.Source,
+		CheckedAt:       prof.CheckedAt.UnixMilli(),
+		LatencyMs:       prof.LatencyMs,
+		AgeSeconds:      int64(time.Since(prof.CheckedAt).Seconds()),
+		UserAgent:       prof.UserAgent,
+		MinVersion:      prof.MinVersion,
+		SessionPattern:  sessionPattern(prof),
+		RequiresStream:  prof.RequiresStream,
+		RequiredTools:   prof.RequiredTools,
+		AcceptsSuper:    prof.AcceptsToolSuperset,
+		Conditions:      prof.Conditions,
 	}
+	st.Refreshing = st.Automatic.Refreshing
 
 	// Describe what the router enforces on every free-tier request.
 	ad := []string{}
@@ -82,6 +95,9 @@ func (s *Server) buildGateStatus(prof *gate.Profile) gateStatus {
 	}
 	if len(prof.RequiredTools) > 0 {
 		ad = append(ad, "tool wajib disuntik bila klien tidak punya: "+strings.Join(prof.RequiredTools, ", "))
+	}
+	if len(prof.ToolDescriptions) > 0 {
+		ad = append(ad, "deskripsi tool wajib mengikuti profil yang terverifikasi; schema tool klien dipertahankan")
 	}
 	if prof.AcceptsToolSuperset {
 		ad = append(ad, "tool tambahan ditoleransi, jadi tool asli klien tetap diteruskan")
@@ -124,8 +140,16 @@ func (s *Server) handleGateRefresh(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Minute)
 	defer cancel()
 
+	model := strings.TrimPrefix(strings.TrimSpace(r.URL.Query().Get("model")), "opencode-zen/")
+	if model == "" {
+		model = s.gate.ProbeModel()
+	}
+	if len(model) > 256 || strings.ContainsAny(model, "\r\n\t/") {
+		writeAPIError(w, http.StatusBadRequest, "invalid Zen probe model", "invalid_request_error")
+		return
+	}
 	s.prepareGate()
-	prof := s.gate.Refresh(ctx)
+	prof := s.gate.RefreshModel(ctx, model)
 	writeJSON(w, http.StatusOK, s.buildGateStatus(prof))
 }
 
@@ -150,9 +174,11 @@ func (s *Server) handleGateTest(w http.ResponseWriter, r *http.Request) {
 	if profile == nil {
 		profile = zen.ProfileFromGate(gate.Fallback())
 	}
+	ctx = zen.WithGateSnapshot(ctx, profile)
 
+	model := s.gate.ProbeModel()
 	body := map[string]any{
-		"model": s.cfg.DefaultModel,
+		"model": model,
 		"input": []map[string]any{{
 			"role":    "user",
 			"content": []map[string]any{{"type": "input_text", "text": "Reply with exactly: GATE_OK"}},
@@ -177,10 +203,11 @@ func (s *Server) handleGateTest(w http.ResponseWriter, r *http.Request) {
 	// Use the same transport the proxy uses. Testing directly would report a
 	// false failure whenever the direct egress IP is rate limited, even though
 	// real requests succeed through mihomo.
-	events, status, err, viaMihomo := s.streamZenForProbe(ctx, s.cfg.DefaultModel, "gate-test", body)
+	events, status, err, viaMihomo := s.streamZenForProbe(ctx, model, "gate-test", body)
 	if err != nil {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"ok":             false,
+			"model":          model,
 			"status":         status,
 			"error":          err.Error(),
 			"elapsed_ms":     time.Since(started).Milliseconds(),
@@ -201,6 +228,7 @@ func (s *Server) handleGateTest(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"ok":             strings.Contains(text, "GATE_OK"),
+		"model":          model,
 		"text":           text,
 		"status":         status,
 		"elapsed_ms":     time.Since(started).Milliseconds(),
@@ -231,8 +259,8 @@ func (s *Server) streamZenForProbe(
 	}
 	if c := s.mihomoClient(); c != nil {
 		if _, err := s.mihomoGroup(ctx, c); err == nil {
-			events, status, err, _ := s.mihomoStreamZen(ctx, model, sessionSeed, body, requestRecord{})
-			return events, status, err, true
+			events, status, err, relay := s.mihomoStreamZen(ctx, model, sessionSeed, body, requestRecord{})
+			return events, status, err, strings.HasPrefix(relay, "mihomo:")
 		}
 	}
 	// No usable proxy group: fall back to direct rather than failing the test.

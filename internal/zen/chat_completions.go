@@ -1,31 +1,27 @@
 package zen
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
+
+	"github.com/rian/mot-router/internal/gate"
 )
 
 // UsesChatCompletions reports whether a model must be served by Zen's
 // /chat/completions endpoint instead of /responses.
 func UsesChatCompletions(model string) bool {
-	low := strings.ToLower(model)
-	if strings.Contains(low, "muse") {
-		return false
-	}
-	return true
+	return gate.UsesChatCompletions(model)
 }
 
 // ConvertToChatPayload adapts the Responses-style body into a standard OpenAI Chat Completions payload.
 func ConvertToChatPayload(model string, body map[string]any) map[string]any {
-	maxTokens := 262144
-	if mt, ok := body["max_output_tokens"].(int); ok && mt > 0 {
-		maxTokens = mt
+	var maxTokens any = 32000
+	if value, ok := body["max_output_tokens"]; ok {
+		maxTokens = value
 	}
 
 	chatPayload := map[string]any{
@@ -80,27 +76,22 @@ func ConvertToChatPayload(model string, body map[string]any) map[string]any {
 				continue
 			}
 
-			var text string
-			if c, ok := it["content"].(string); ok {
-				text = c
-			} else if parts, ok := it["content"].([]map[string]any); ok {
-				for _, p := range parts {
-					if t, ok := p["text"].(string); ok {
-						text += t
-					}
-				}
-			}
-
+			content := chatContent(it["content"])
 			if role == "assistant" && len(msgs) > 0 && msgs[len(msgs)-1]["role"] == "assistant" {
 				last := msgs[len(msgs)-1]
-				if existingContent, ok := last["content"].(string); ok && existingContent != "" {
-					last["content"] = existingContent + "\n" + text
+				if previous, ok := last["content"].(string); ok && previous != "" {
+					if text, ok := content.(string); ok {
+						last["content"] = previous + "\n" + text
+					} else {
+						last["content"] = append([]map[string]any{{"type": "text", "text": previous}}, content.([]map[string]any)...)
+					}
 				} else {
-					last["content"] = text
+					last["content"] = content
 				}
 			} else {
-				msgs = append(msgs, map[string]any{"role": role, "content": text})
+				msgs = append(msgs, map[string]any{"role": role, "content": content})
 			}
+
 		}
 		chatPayload["messages"] = msgs
 	}
@@ -142,19 +133,40 @@ func ConvertToChatPayload(model string, body map[string]any) map[string]any {
 		chatPayload["tool_choice"] = "auto"
 	}
 
+	for _, key := range []string{"temperature", "top_p", "stop", "response_format", "parallel_tool_calls", "seed"} {
+		if value, ok := body[key]; ok {
+			chatPayload[key] = value
+		}
+	}
+	if value, ok := body["tool_choice"]; ok {
+		if named, ok := value.(map[string]any); ok && named["type"] == "function" && named["name"] != nil {
+			value = map[string]any{"type": "function", "function": map[string]any{"name": named["name"]}}
+		}
+		chatPayload["tool_choice"] = value
+	}
+	if reasoning, ok := body["reasoning"].(map[string]any); ok && reasoning["effort"] != nil {
+		chatPayload["reasoning_effort"] = reasoning["effort"]
+	}
 	return chatPayload
 }
 
 // StreamChatCompletions sends a request to /zen/v1/chat/completions and decodes
 // standard OpenAI chunk frames into Zen Event instances.
 func (c *Client) StreamChatCompletions(ctx context.Context, model, sessionSeed string, body map[string]any) (<-chan Event, int, error) {
+	c = c.requestClient(ctx)
+	body = withToolDescriptions(model, body, c.CurrentGate())
 	chatBody := ConvertToChatPayload(model, body)
+	if profile := c.CurrentGate(); profile != nil && profile.ClientFormat == gate.ClientV2 {
+		// V2's native Chat client sends this parameter, including DeepSeek.
+		chatBody["max_completion_tokens"] = chatBody["max_tokens"]
+		delete(chatBody, "max_tokens")
+	}
 	payload, err := json.Marshal(chatBody)
 	if err != nil {
 		return nil, 0, fmt.Errorf("encode request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+"/chat/completions", bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.EffectiveBaseURL(model)+"/chat/completions", bytes.NewReader(payload))
 	if err != nil {
 		return nil, 0, fmt.Errorf("build request: %w", err)
 	}
@@ -170,174 +182,52 @@ func (c *Client) StreamChatCompletions(ctx context.Context, model, sessionSeed s
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		detail, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		resp.Body.Close()
-		return nil, resp.StatusCode, fmt.Errorf("%s", strings.TrimSpace(string(detail)))
+		return nil, resp.StatusCode, upstreamError(resp, detail)
 	}
 
-	out := make(chan Event, 32)
-	go func() {
-		defer close(out)
-		defer resp.Body.Close()
+	return decodeChatStream(ctx, resp), resp.StatusCode, nil
+}
 
-		type chatUsage struct {
-			PromptTokens     int64 `json:"prompt_tokens"`
-			CompletionTokens int64 `json:"completion_tokens"`
-			TotalTokens      int64 `json:"total_tokens"`
-		}
-
-		type rawDelta struct {
-			Role             string `json:"role"`
-			Content          string `json:"content"`
-			ReasoningContent string `json:"reasoning_content"`
-			Reasoning        string `json:"reasoning"`
-			ToolCalls        []struct {
-				Index    int    `json:"index"`
-				ID       string `json:"id"`
-				Type     string `json:"type"`
-				Function struct {
-					Name      string `json:"name"`
-					Arguments string `json:"arguments"`
-				} `json:"function"`
-			} `json:"tool_calls"`
-		}
-
-		type rawChunk struct {
-			Choices []struct {
-				Delta        rawDelta `json:"delta"`
-				FinishReason *string  `json:"finish_reason"`
-			} `json:"choices"`
-			Usage *chatUsage `json:"usage"`
-		}
-
-		type toolAccum struct {
-			ID        string
-			Name      string
-			Arguments string
-		}
-
-		toolMap := make(map[int]*toolAccum)
-		reasoningActive := false
-		toolsEmitted := false
-		var lastUsage *Usage
-
-		emitToolsOnce := func() {
-			if toolsEmitted {
-				return
-			}
-			toolsEmitted = true
-			for i := range len(toolMap) {
-				if acc, ok := toolMap[i]; ok {
-					out <- Event{
-						Type: "response.output_item.done",
-						Item: &Item{
-							Type:      "function_call",
-							CallID:    acc.ID,
-							Name:      acc.Name,
-							Arguments: acc.Arguments,
-						},
-					}
-				}
-			}
-			toolMap = make(map[int]*toolAccum)
-		}
-
-		scanner := bufio.NewScanner(resp.Body)
-		scanner.Buffer(make([]byte, 0, 64*1024), 8*1024*1024)
-
-		for scanner.Scan() {
-			line := scanner.Text()
-			if !strings.HasPrefix(line, "data: ") {
-				continue
-			}
-			data := strings.TrimSpace(line[6:])
-			if data == "[DONE]" {
-				break
-			}
-
-			var chunk rawChunk
-			if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-				continue
-			}
-
-			if chunk.Usage != nil {
-				inTok := chunk.Usage.PromptTokens
-				outTok := chunk.Usage.CompletionTokens
-				if inTok > 0 || outTok > 0 {
-					lastUsage = &Usage{
-						InputTokens:  inTok,
-						OutputTokens: outTok,
-					}
-				}
-			}
-
-			for _, choice := range chunk.Choices {
-				reasoningText := choice.Delta.ReasoningContent
-				if reasoningText == "" {
-					reasoningText = choice.Delta.Reasoning
-				}
-				if reasoningText != "" {
-					reasoningActive = true
-					out <- Event{
-						Type:   "response.reasoning_summary_text.delta",
-						Delta:  reasoningText,
-						ItemID: "thinking",
-					}
-				}
-
-				if choice.Delta.Content != "" {
-					if reasoningActive {
-						reasoningActive = false
-						out <- Event{Type: "response.reasoning_summary_text.done"}
-					}
-					out <- Event{
-						Type:   "response.output_text.delta",
-						Delta:  choice.Delta.Content,
-						ItemID: "msg_content",
-					}
-				}
-
-				for _, tc := range choice.Delta.ToolCalls {
-					acc, exists := toolMap[tc.Index]
-					if !exists {
-						acc = &toolAccum{}
-						toolMap[tc.Index] = acc
-					}
-					if tc.ID != "" {
-						acc.ID = tc.ID
-					}
-					if tc.Function.Name != "" {
-						acc.Name += tc.Function.Name
-					}
-					if tc.Function.Arguments != "" {
-						acc.Arguments += tc.Function.Arguments
-					}
-				}
-
-				if choice.FinishReason != nil && *choice.FinishReason != "" {
-					if reasoningActive {
-						reasoningActive = false
-						out <- Event{Type: "response.reasoning_summary_text.done"}
-					}
-					emitToolsOnce()
-				}
+// Text-only messages remain strings. Mixed content retains its image URL and detail.
+func chatContent(value any) any {
+	if text, ok := value.(string); ok {
+		return text
+	}
+	var parts []map[string]any
+	switch v := value.(type) {
+	case []map[string]any:
+		parts = v
+	case []any:
+		for _, p := range v {
+			if part, ok := p.(map[string]any); ok {
+				parts = append(parts, part)
 			}
 		}
-
-		if reasoningActive {
-			out <- Event{Type: "response.reasoning_summary_text.done"}
-		}
-		emitToolsOnce()
-
-		if lastUsage != nil {
-			out <- Event{
-				Type: "response.completed",
-				Response: &struct {
-					Usage *Usage `json:"usage"`
-				}{Usage: lastUsage},
+	}
+	converted := []map[string]any{}
+	text := ""
+	mixed := false
+	for _, part := range parts {
+		switch part["type"] {
+		case "input_text", "output_text", "text":
+			if t, ok := part["text"].(string); ok {
+				text += t
+				converted = append(converted, map[string]any{"type": "text", "text": t})
 			}
-		} else {
-			out <- Event{Type: "response.completed"}
+		case "input_image":
+			image := map[string]any{"url": part["image_url"]}
+			if detail, ok := part["detail"].(string); ok && detail != "" {
+				image["detail"] = detail
+			}
+			converted = append(converted, map[string]any{"type": "image_url", "image_url": image})
+			mixed = true
+		case "image_url":
+			converted = append(converted, part)
+			mixed = true
 		}
-	}()
-
-	return out, resp.StatusCode, nil
+	}
+	if mixed {
+		return converted
+	}
+	return text
 }
