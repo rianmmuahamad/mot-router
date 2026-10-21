@@ -26,8 +26,13 @@ import (
 )
 
 const (
-	defaultPort  = 8787
-	defaultModel = "deepseek-v4.1-flash-free"
+	defaultPort = 8787
+	// defaultModel must name a model that still has free-tier allowance.
+	// Measured: deepseek-v4.1-flash-free, mimo-v2.6-flash-free, big-pickle,
+	// glm-5.3-flash-free and flint-40b-free answer 429 from every egress
+	// measured, while nemotron-3.5-lightning-free answers 200. The free-tier
+	// allowance is scoped per model, not per exit IP.
+	defaultModel = "nemotron-3.5-lightning-free"
 )
 
 func main() {

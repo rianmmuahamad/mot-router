@@ -16,9 +16,12 @@
 # Node
 node_modules/
 
+# Static design mockups (not part of the router build)
+/previews/
+
 # Editor/OS
 .DS_Store
 *.swp
 
-# Static design mockups (not part of the router build)
-/previews/
+# Diagnostic test output
+/tools/diagnostics/results/

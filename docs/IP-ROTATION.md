@@ -9,26 +9,37 @@ Semua angka di dokumen ini berasal dari pengukuran di mesin ini, bukan perkiraan
 
 ## 1. Masalah yang dipecahkan
 
-Zen free tier membatasi **per (IP egress, model)**. Bukti terukur di VPS ini:
+Kuota free tier melekat pada **model**, bukan pada IP egress. Bukti terukur
+dengan CLI OpenCode asli (bukan hanya lewat bridge) di dua host dengan IP yang
+sangat berbeda:
 
-- Dari **satu IP egress yang sama**, `beam-free` menjawab `200` sementara
-  `deepseek-v4.1-flash-free` menjawab `429 FreeUsageLimitError`.
-- Mengganti IP egress **tidak** memperbaiki `429` tersebut: `deepseek` tetap
-  `429` di 4 IP berbeda (termasuk IP VPS sendiri), sementara `beam-free`
-  tetap `200` di IP-IP yang sama itu.
-- `429` berarti allowance model itu habis di IP tersebut. `403` berbeda
-  makna: IP itu **ditolak** reputasi, dan IP lain akan memperbaikinya.
+| Model | CLI asli, laptop (`114.12.2.204`) | CLI asli, VPS | Bridge, laptop | Bridge, VPS |
+|---|---|---|---|---|
+| `beam-free` | 200 | 200 | 200 | 200 |
+| `nemotron-3.5-lightning-free` | 200 | 200 | 200 | 200 |
+| `nemotron-3-ultra-free` | 200 | 200 | 200 | 200 |
+| `minimax-m3.1-flash-free` | 200 | 200 | 200 | 200 |
+| `deepseek-v4.1-flash-free` | **429** | **429** | **429** | **429** |
+| `mimo-v2.6-flash-free` | **429** | **429** | **429** | **429** |
+| `big-pickle` | **429** | **429** | **429** | **429** |
+| `glm-5.3-flash-free` | **429** | **429** | **429** | **429** |
+| `flint-40b-free` | **429** | **429** | **429** | **429** |
 
-Konsekuensinya:
+Pola identik di IP residential maupun datacenter, dan CLI asli berperilaku sama
+dengan bridge. Jadi:
 
 - Ganti API key tidak menolong — limitnya bukan di kredensial.
-- **Rotasi IP tidak memperbaiki `429`** yang berbasis model.
-- Untuk `403` (IP diblokir), ganti IP adalah satu-satunya perbaikan.
+- **Rotasi IP tidak memperbaiki `429`** mana pun. Diuji langsung: `deepseek`
+  tetap `429` di 4 IP berbeda, `beam` tetap `200` di IP-IP yang sama.
 - Untuk `429`, satu-satunya perbaikan adalah **model lain yang masih punya
   allowance** — ini yang dilakukan router lewat fallback model.
+- `403` berbeda makna: IP itu **ditolak** reputasi, dan IP lain memperbaikinya.
+  Rotasi IP tetap berguna untuk kasus itu.
 
-Karena itu ada dua mekanisme terpisah: rotasi IP untuk `403`, dan fallback
-antar-model untuk `429`. Keduanya diukur, bukan asumsi.
+Catatan historis: "Rate limit exceeded" di log CLI muncul pada 11-12 Ags,
+5-8 Sep, 15 Sep, dan 21 Okt 2026 — berselang-seling, bukan status permanen.
+Artinya kuota pulih, lalu habis lagi. Default model karena itu harus model
+yang allowance-nya sedang tersedia, bukan model yang *pernah* tersedia.
 
 ---
 
@@ -36,32 +47,32 @@ antar-model untuk `429`. Keduanya diukur, bukan asumsi.
 
 ```
                     Klien
-                      │
-                      ▼
+                      |
+                      v
           POST /v1/chat/completions
-                      │
-                      ▼
-        ┌───────────────────────────────────────┐
-        │  mot-router (Go, :8787)               │
-        │  - adaptasi gate (header + tool)      │
-        │  - ZEN_BASE_URL -> bridge lokal       │
-        └────────────────┬──────────────────────┘
-                         │ loopback
-                         ▼
-        ┌───────────────────────────────────────┐
-        │  opencode-free-bridge (Bun, :20129)   │
-        │  - paritas TLS Bun (17 cipher,        │
-        │    12 extension) -> lolos gate       │
-        │  - HTTPS_PROXY -> :7893                │
-        └────────────────┬──────────────────────┘
-                         │ CONNECT
-                         ▼
-        ┌───────────────────────────────────────┐
-        │  nodebank runtime (:7893, ctrl :9093) │
-        │  - grup MOT                           │
-        │  - node: WARP / datacenter / DIRECT   │
-        └────────────────┬──────────────────────┘
-                         ▼
+                      |
+                      v
+        +---------------------------------------+
+        |  mot-router (Go, :8787)               |
+        |  - adaptasi gate (header + tool)      |
+        |  - ZEN_BASE_URL -> bridge lokal       |
+        +----------------+----------------------+
+                         | loopback
+                         v
+        +---------------------------------------+
+        |  opencode-free-bridge (Bun, :20129)   |
+        |  - paritas TLS Bun (17 cipher,        |
+        |    12 extension) -> lolos gate       |
+        |  - HTTPS_PROXY -> :7893                |
+        +----------------+----------------------+
+                         | CONNECT
+                         v
+        +---------------------------------------+
+        |  nodebank runtime (:7893, ctrl :9093) |
+        |  - grup MOT                           |
+        |  - node: WARP / datacenter / DIRECT   |
+        +----------------+----------------------+
+                         v
                    opencode.ai (Zen)
 ```
 
@@ -71,9 +82,14 @@ Saat upstream menjawab `429`, router membaca snapshot
 punya allowance. Snapshot basi (>30 menit) diabaikan supaya fallback tidak
 memindahkan masalah ke model yang juga sudah habis.
 
-Relay Cloudflare Worker tetap terpasang sebagai jalur cadangan, tapi tidak
-lagi menjadi jalur utama: IP egress-nya dipakai bersama seluruh pengguna
-gratis Cloudflare dan selalu `429`.
+Fallback **tidak** diam-diam: responsnya membawa header
+`X-Mot-Served-Model` dan `X-Mot-Requested-Model`, dan field `model` pada body
+menyebut model yang benar-benar menjawab. Tanpa itu klien menerima keluaran
+model lain di bawah nama yang ia minta.
+
+Relay Cloudflare Worker tetap terpasang sebagai jalur cadangan, tapi tidak lagi
+menjadi jalur utama: IP egress-nya dipakai bersama seluruh pengguna gratis
+Cloudflare dan selalu `429`.
 
 ---
 
@@ -179,22 +195,10 @@ karena tiga kondisi lain juga diperbaiki oleh node berbeda.
 
 | Kondisi | Pemicu | Kenapa rotasi menolong |
 |---|---|---|
-| Rate limit | `429`, `rate limit`, `quota`, `resource_exhausted` | **hanya kalau allowance-nya melekat pada IP** — lihat catatan di bawah |
+| Rate limit | `429`, `rate limit`, `quota`, `resource_exhausted` | **tidak** — kuota melekat pada model, bukan IP (lihat bagian 1) |
 | Blokir region | `403` + `region` / `RegionError` | node di negara lain tidak diblokir |
 | Koneksi putus | status `0`, `unexpected EOF`, `connection reset` | node tertentu yang rusak |
 | Upstream penuh | `503` / `502`, `service_overloaded` | node lain menuju jalur berbeda |
-
-### Catatan penting: `429` tidak selalu per-IP
-
-Terukur di VPS ini: `429` dari `deepseek-v4.1-flash-free` tetap muncul di 4 IP
-egress berbeda, sementara `beam-free` di IP-IP yang sama menjawab `200`. Jadi
-`429` di sini berbasis **(IP, model)**.
-
-Konsekuensi operasional: rotasi IP **tidak** memperbaiki model yang allowance-nya
-habis. Yang memperbaikinya adalah fallback ke model lain (bagian 2). Karena itu
-`mot-warp-rotator.service` sekarang hanya memindahkan egress saat melihat `403`,
-dan sisanya mengukur model mana yang masih tersedia lalu memublikasikannya.
-
 
 ### Aturan yang menjaga klasifikasi tetap sempit
 
@@ -496,20 +500,6 @@ langganan berbayar.
 | `internal/mihomo/mihomo.go` | klien API kontrol, `ProxyClient`, `EgressIP`, `Healthy()`, `egressProbes` |
 | `internal/server/gate.go` | `prepareGate` — mengarahkan prober ke jalur proxy |
 | `internal/gate/gate.go` | prober; rotasi pada `429` dan koneksi putus |
-| `internal/server/model_availability.go` | membaca snapshot ketersediaan model; memilih fallback saat `429` |
-
-### Layanan di VPS
-
-| Unit | Peran |
-|---|---|
-| `opencode-free-bridge.service` | bridge Bun di `:20129`; paritas TLS; egress lewat `:7893` |
-| `mot-warp-rotator.service` | mengukur model yang tersedia, memublikasikan snapshot, memindah egress saat `403` |
-| `mot-nodebank-runtime.service` | runtime proxy nodebank di `:7893` (ctrl `:9093`) |
-
-Snapshot ketersediaan model:
-`/opt/mot-router/data/model-availability.json` — ditulis tiap 2 menit oleh
-`mot-warp-rotator.service`.
-
 
 ### Tes regresi
 
@@ -532,36 +522,7 @@ Snapshot ketersediaan model:
 
 ---
 
-## 13. Model yang sudah ditarik upstream: `muse-spark`
-
-`muse-spark-1.3-contributor-free` sudah dihapus upstream (dulumnya `410
-ModelDeprecated`, sekarang tidak lagi ada di katalog). Yang tersisa di router
-adalah jalur `/responses`, yang **tidak** dilayani `opencode-free-bridge`
-(hanya ada `/chat/completions` dan `/v1/models`), sehingga request itu selalu
-`404`.
-
-Perubahan yang dilakukan:
-
-- `main.go`: default model menjadi `deepseek-v4.1-flash-free`.
-- `internal/gate/client_format.go`: `UsesChatCompletions()` tidak lagi
-  keputusan berdasarkan nama model. Model yang butuh lane Responses kini
-  ditentukan lewat env `ZEN_RESPONSES_MODELS` (daftar id dipisah koma), sama
-  seperti `RESPONSES_MODELS` di bridge. Semua model free yang hidup memakai
-  lane chat.
-- Katalog dashboard, daftar model statis, dan katalog `motgate` tidak lagi
-  memuat `muse`; `motgate` juga memakai `deepseek-v4.1-flash-free` sebagai
-  model katalog.
-- Fixture tes yang sengaja menguji bentuk payload Responses (developer-role
-  `input`, tool datar) kini men-pin lane itu lewat env, bukan lewat nama model
-  yang mirip `muse`.
-
-Efeknya: request `muse-spark-1.3-contributor-free` kini dijawab `404` yang
-jelas (*"Model ... has been retired upstream"*), bukan `404` jalur yang
-membingungkan.
-
----
-
-## 14. Hal yang perlu diingat
+## 13. Hal yang perlu diingat
 
 1. **Rotasi mengganti IP, bukan kredensial.** Kalau limitnya per akun, rotasi
    tidak menolong.

@@ -497,9 +497,12 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, surface str
 	events, status, err, relay := s.mihomoStreamZen(r.Context(), model, sessionSeed, body, base)
 	base.Relay = relay
 
-	// A spent per-model allowance cannot be fixed by another exit IP: the
-	// limit is scoped to (egress, model). When the monitor published a model
-	// that still has allowance, serve the request with it instead of failing.
+	// A spent model allowance cannot be fixed by another exit IP: the limit is
+	// scoped to the model, not to the egress. Measured: deepseek answers 429
+	// and beam answers 200 from the same IP, and the 429 follows the model to
+	// a different IP as well. So the only fix is a different model, and the
+	// client has to be told which one answered — a silent substitution would
+	// hand back another model's output under the requested name.
 	if err != nil && status == http.StatusTooManyRequests {
 		if fallback := s.fallbackModelForLimit(r.Context(), model); fallback != "" {
 			fallbackBody, fallbackMap, buildErr := s.translateZenBodyWithProfile(raw, surface, fallback, profile)
@@ -510,6 +513,8 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, surface str
 					model = fallbackModel
 					base.Model = fallbackModel
 					base.Relay = relay + " -> fallback:" + fallback
+					w.Header().Set("X-Mot-Served-Model", fallback)
+					w.Header().Set("X-Mot-Requested-Model", requestedModel)
 					events, status, err, relay = s.mihomoStreamZen(r.Context(), model, sessionSeed, body, base)
 				}
 			}
@@ -646,11 +651,24 @@ func (s *Server) handleModels(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusBadGateway, err.Error(), "api_error")
 		return
 	}
+	// A model that is listed but answers 429 cannot be used, and the free
+	// tier's allowance is scoped per model, so the list has to say which
+	// models still work. Without this a client picks a listed id and gets a
+	// rate-limit error it cannot explain.
+	available := map[string]bool{}
+	snap := s.readModelAvailability()
+	for _, model := range snap.Available {
+		available[model] = true
+	}
 	data := make([]map[string]any, 0, len(models))
 	for _, m := range models {
-		data = append(data, map[string]any{
+		entry := map[string]any{
 			"id": m.ID, "object": "model", "created": m.Created, "owned_by": "opencode",
-		})
+		}
+		if len(available) > 0 {
+			entry["available"] = available[m.ID]
+		}
+		data = append(data, entry)
 	}
 	data = append(data,
 		map[string]any{"id": "cline/glm-5.2", "object": "model", "owned_by": "cline"},
